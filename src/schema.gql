@@ -1,0 +1,16 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Query {
+  health: String!
+  me: User!
+}
+
+type User {
+  avatarUrl: String
+  email: String!
+  isAdmin: Boolean
+  name: String!
+  userId: ID!
+}
