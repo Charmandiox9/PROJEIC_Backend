@@ -16,7 +16,7 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const jwt = await this.authService.login(req.user);
     res.redirect(
-      `http://localhost:3000/api/auth/success?token=${jwt.accessToken}`,
+      `http://localhost:3000/projeic/auth/success?token=${jwt.accessToken}`,
     );
   }
 }
