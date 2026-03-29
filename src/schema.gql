@@ -2,9 +2,153 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddProjectMemberInput {
+  """
+  Correo del usuario que quieres invitar
+  """
+  email: String!
+  projectId: ID!
+  role: ProjectRole!
+}
+
+"""
+Data required to create a new project
+"""
+input CreateProjectInput {
+  """
+  Hex color (e.g. #3B82F6)
+  """
+  color: String = "#3B82F6"
+
+  """
+  Optional description (max 500 chars)
+  """
+  description: String
+
+  """
+  Make project visible to everyone
+  """
+  isPublic: Boolean = false
+
+  """
+  Methodology (defaults to KANBAN)
+  """
+  methodology: ProjectMethodology = KANBAN
+
+  """
+  Project display name (3–100 chars)
+  """
+  name: String!
+
+  """
+  Initial status (defaults to ACTIVE)
+  """
+  status: ProjectStatus = ACTIVE
+}
+
+scalar DateTime
+
+type Mutation {
+  addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
+  archiveProject(id: ID!): ProjectEntity!
+  createProject(input: CreateProjectInput!): ProjectEntity!
+  deleteProject(id: ID!): ProjectEntity!
+  removeProjectMember(memberId: ID!): Boolean!
+  updateProject(input: UpdateProjectInput!): ProjectEntity!
+  updateProjectMemberRole(
+    input: UpdateProjectMemberInput!
+  ): ProjectMemberEntity!
+}
+
+type PaginatedProjects {
+  items: [ProjectEntity!]!
+  skip: Int!
+  take: Int!
+  total: Int!
+}
+
+type ProjectEntity {
+  color: String!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  isArchived: Boolean!
+  isPublic: Boolean!
+  members: [ProjectMemberEntity!]
+  methodology: ProjectMethodology!
+  name: String!
+  status: ProjectStatus!
+  updatedAt: DateTime!
+}
+
+type ProjectMemberEntity {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  user: PublicUser!
+}
+
+enum ProjectMethodology {
+  KANBAN
+  SCRUM
+  SCRUMBAN
+}
+
+enum ProjectRole {
+  EXTERNAL
+  LEADER
+  STUDENT
+  SUPERVISOR
+}
+
+enum ProjectStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
+  ON_HOLD
+  STARTING
+}
+
+input ProjectsFilterInput {
+  includeArchived: Boolean = false
+  isPublic: Boolean
+  methodology: ProjectMethodology
+  search: String
+  skip: Int = 0
+  status: ProjectStatus
+  take: Int = 20
+}
+
+type PublicUser {
+  avatarUrl: String
+  id: ID!
+  name: String!
+}
+
 type Query {
+  findAll(
+    filter: ProjectsFilterInput
+    includeMembers: Boolean
+  ): PaginatedProjects!
+  findOne(id: String!): ProjectEntity!
   health: String!
   me: User!
+}
+
+input UpdateProjectInput {
+  assignMeAsLeader: Boolean
+  color: String
+  description: String
+  id: ID!
+  isPublic: Boolean
+  methodology: ProjectMethodology = KANBAN
+  name: String
+  status: ProjectStatus = ACTIVE
+}
+
+input UpdateProjectMemberInput {
+  memberId: ID!
+  role: ProjectRole!
 }
 
 type User {

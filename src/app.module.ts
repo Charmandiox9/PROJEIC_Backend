@@ -11,6 +11,8 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { GoogleStrategy } from './auth/strategies/google.strategy';
 import { JwtStrategy } from './auth/strategies/wt.strategy';
+import { ProjectsModule } from './projects/projects.module';
+import { ProjectMembersModule } from './project-members/project-members.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { JwtStrategy } from './auth/strategies/wt.strategy';
     }),
     AuthModule,
     PrismaModule,
+    ProjectsModule,
+    ProjectMembersModule,
   ],
   controllers: [AppController],
   providers: [AppService, AppResolver, GoogleStrategy, JwtStrategy],
