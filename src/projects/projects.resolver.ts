@@ -34,10 +34,9 @@ function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
     .some((f) => f.name.value === 'members');
 }
 
-@UseGuards(GqlAuthGuard)
 @Resolver(() => ProjectEntity)
 export class ProjectsResolver {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   // ─── Queries ─────────────────────────────────────────────────────────────
 
@@ -48,7 +47,27 @@ export class ProjectsResolver {
     @Args('includeMembers', { type: () => Boolean, nullable: true })
     includeMembers?: boolean,
   ) {
-    return this.projectsService.findAll(user.sub, filter, includeMembers);
+    return this.projectsService.findAll(user?.sub, filter, includeMembers);
+  }
+
+  @UseGuards(GqlAuthGuard)
+  @Query(() => PaginatedProjects, { name: 'myProjects' })
+  findMyProjects(
+    @CurrentUser() user: any,
+    @Args('filter', { nullable: true }) filter?: ProjectsFilterInput,
+    @Args('includeMembers', { type: () => Boolean, nullable: true })
+    includeMembers?: boolean,
+  ) {
+    // Usamos el mismo truco seguro para extraer el ID que descubrimos antes
+    const userId = user.id || user.userId || user.sub;
+
+    if (!userId) {
+      throw new Error(
+        'No se pudo extraer el ID del usuario desde el token JWT',
+      );
+    }
+
+    return this.projectsService.findMyProjects(userId, filter, includeMembers);
   }
 
   @Query(() => ProjectEntity)
@@ -56,19 +75,23 @@ export class ProjectsResolver {
     @Args('id', { type: () => String }) id: string,
     @CurrentUser() user: any, // 1. Inyectamos el usuario
   ) {
-    return this.projectsService.findOne(id, user.sub);
+    return this.projectsService.findOne(id, user?.sub);
   }
 
   // ─── Mutations ───────────────────────────────────────────────────────────
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => ProjectEntity, { name: 'createProject' })
   create(
     @Args('input') input: CreateProjectInput,
     @CurrentUser() user: any,
   ): Promise<Project> {
-    return this.projectsService.create(input, user.sub);
+    const userId = user.id || user.userId || user.sub;
+    if (!userId) throw new Error('No user identity found in token');
+    return this.projectsService.create(input, userId);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => ProjectEntity)
   updateProject(
     @Args('input') input: UpdateProjectInput,
@@ -88,6 +111,7 @@ export class ProjectsResolver {
     return this.projectsService.update(input, userId);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => ProjectEntity, {
     name: 'archiveProject',
     description: 'Soft-delete a project (sets isArchived = true)',
@@ -96,6 +120,7 @@ export class ProjectsResolver {
     return this.projectsService.archive(id);
   }
 
+  @UseGuards(GqlAuthGuard)
   @Mutation(() => ProjectEntity, {
     name: 'deleteProject',
     description: 'Permanently delete a project and all its data (cascades)',

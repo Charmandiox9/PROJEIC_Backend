@@ -39,8 +39,11 @@ export class ProjectsRepository {
     return this.prisma.project.create({ data });
   }
 
-  async findById(id: string): Promise<ProjectBase | null> {
-    return this.prisma.project.findUnique({ where: { id } });
+  async findById(id: string): Promise<ProjectBase | ProjectWithMembers | null> {
+    return this.prisma.project.findUnique({
+      where: { id },
+      include: this.membersInclude
+    });
   }
 
   async findMany(

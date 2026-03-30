@@ -27,7 +27,7 @@ import { PaginatedProjects } from './dto/paginated-projects.type';
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(private readonly repository: ProjectsRepository) {}
+  constructor(private readonly repository: ProjectsRepository) { }
 
   // ─── Create ──────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ export class ProjectsService {
   // ─── Read ─────────────────────────────────────────────────────────────────
 
   async findAll(
-    userId: string, // <-- Agregamos el usuario que consulta
+    userId: string | undefined, // <-- Agregamos el usuario que consulta
     filter: ProjectsFilterInput = {},
     includeMembers = false,
   ): Promise<PaginatedProjects> {
@@ -75,7 +75,7 @@ export class ProjectsService {
       ...(search && {
         name: { contains: search, mode: 'insensitive' as const },
       }),
-      OR: [{ isPublic: true }, { members: { some: { userId: userId } } }],
+      OR: userId ? [{ isPublic: true }, { members: { some: { userId: userId } } }] : [{ isPublic: true }],
     };
 
     const [items, total] = await Promise.all([
@@ -86,7 +86,40 @@ export class ProjectsService {
     return { items, total, skip, take };
   }
 
-  async findOne(id: string, userId: string) {
+
+  async findMyProjects(
+    userId: string,
+    filter: ProjectsFilterInput = {},
+    includeMembers = false,
+  ): Promise<PaginatedProjects> {
+    const {
+      status,
+      methodology,
+      includeArchived = false,
+      search,
+      take = 20,
+      skip = 0,
+    } = filter;
+
+    const where = {
+      ...(status && { status }),
+      ...(methodology && { methodology }),
+      ...(!includeArchived && { isArchived: false }),
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
+      members: { some: { userId: userId } },
+    };
+
+    const [items, total] = await Promise.all([
+      this.repository.findMany(where, skip, take, includeMembers),
+      this.repository.count(where),
+    ]);
+
+    return { items, total, skip, take };
+  }
+
+  async findOne(id: string, userId: string | undefined) {
     const project = await this.repository.findById(id);
 
     if (!project) {
