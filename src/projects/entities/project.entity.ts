@@ -1,6 +1,12 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
-import { ProjectStatus, ProjectMethodology } from '@prisma/client';
+import { ObjectType, Field, ID, registerEnumType } from '@nestjs/graphql';
+import {
+  ProjectStatus,
+  ProjectMethodology,
+  MemberStatus,
+} from '@prisma/client';
 import '../../common/enums/project.enums';
+
+registerEnumType(MemberStatus, { name: 'MemberStatus' });
 
 // ─── Sub-types ────────────────────────────────────────────────────────────────
 
@@ -23,6 +29,9 @@ export class ProjectMemberEntity {
 
   @Field()
   role: string;
+
+  @Field(() => MemberStatus)
+  status: MemberStatus;
 
   @Field(() => PublicUser)
   user: PublicUser;

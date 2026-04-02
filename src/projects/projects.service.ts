@@ -9,6 +9,7 @@ import {
   ProjectStatus,
   ProjectMethodology,
   ProjectRole,
+  MemberStatus,
 } from '@prisma/client';
 import { ProjectsRepository } from './projects.repository';
 import { CreateProjectInput } from './dto/create-project.input';
@@ -27,7 +28,7 @@ import { PaginatedProjects } from './dto/paginated-projects.type';
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
 
-  constructor(private readonly repository: ProjectsRepository) { }
+  constructor(private readonly repository: ProjectsRepository) {}
 
   // ─── Create ──────────────────────────────────────────────────────────────
 
@@ -75,7 +76,16 @@ export class ProjectsService {
       ...(search && {
         name: { contains: search, mode: 'insensitive' as const },
       }),
-      OR: userId ? [{ isPublic: true }, { members: { some: { userId: userId } } }] : [{ isPublic: true }],
+      OR: userId
+        ? [
+            { isPublic: true },
+            {
+              members: {
+                some: { userId: userId, status: MemberStatus.ACTIVE },
+              },
+            },
+          ]
+        : [{ isPublic: true }],
     };
 
     const [items, total] = await Promise.all([
@@ -85,7 +95,6 @@ export class ProjectsService {
 
     return { items, total, skip, take };
   }
-
 
   async findMyProjects(
     userId: string,
@@ -108,7 +117,7 @@ export class ProjectsService {
       ...(search && {
         name: { contains: search, mode: 'insensitive' as const },
       }),
-      members: { some: { userId: userId } },
+      members: { some: { userId: userId, status: MemberStatus.ACTIVE } },
     };
 
     const [items, total] = await Promise.all([

@@ -35,6 +35,12 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+enum MemberStatus {
+  ACTIVE
+  PENDING
+  REJECTED
+}
+
 type Mutation {
   addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
 
@@ -44,9 +50,31 @@ type Mutation {
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
+  markAllNotificationsAsRead: Boolean!
+  markNotificationAsRead(id: ID!): NotificationEntity!
   removeProjectMember(memberId: ID!): Boolean!
+  respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
+}
+
+type NotificationEntity {
+  createdAt: DateTime!
+
+  """ID de la entidad relacionada (ej: projectId)"""
+  entityId: ID
+  id: ID!
+  isRead: Boolean!
+  message: String
+  title: String!
+  type: NotificationType!
+}
+
+enum NotificationType {
+  COMMENTARY_MENTION
+  PROJECT_INVITATION
+  SYSTEM_ALERT
+  TASK_ASSIGNED
 }
 
 """Paginated list of projects"""
@@ -104,6 +132,7 @@ type ProjectMemberEntity {
   id: ID!
   joinedAt: DateTime!
   role: String!
+  status: MemberStatus!
   user: PublicUser!
 }
 
@@ -162,6 +191,7 @@ type Query {
   findOne(id: String!): ProjectEntity!
   health: String!
   me: User!
+  myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
   myProjects(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
 }
 

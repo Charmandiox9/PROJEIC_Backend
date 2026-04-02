@@ -76,6 +76,19 @@ enum ActivityEntity {
   SPRINT
 }
 
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum NotificationType {
+  PROJECT_INVITATION
+  TASK_ASSIGNED
+  COMMENTARY_MENTION
+  SYSTEM_ALERT
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -95,6 +108,7 @@ model User {
   comments       Comment[]
   attachments    Attachment[]
   activityLogs   ActivityLog[]
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -126,9 +140,10 @@ model Project {
 // ─── ProjectMember ───────────────────────────────────────────────────────────
 
 model ProjectMember {
-  id       String      @id @default(cuid())
+  id       String       @id @default(cuid())
   role     ProjectRole
-  joinedAt DateTime    @default(now())
+  status   MemberStatus @default(PENDING)
+  joinedAt DateTime     @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -300,4 +315,22 @@ model ActivityLog {
   @@index([projectId, createdAt(sort: Desc)])
   @@index([entityId])
   @@map("activity_logs")
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────────────
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String // El usuario que recibe la notificación
+  type      NotificationType
+  title     String // Ej: "Nueva invitación de proyecto"
+  message   String? // Ej: "Martín te ha invitado a PROJEIC"
+  isRead    Boolean          @default(false)
+  entityId  String? // ID de referencia (ej: ID del proyecto o tarea)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
 }

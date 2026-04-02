@@ -5,12 +5,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AddProjectMemberInput } from './dto/add-member.input';
 import { UpdateProjectMemberInput } from './dto/update-member.input';
 
 @Injectable()
 export class ProjectMembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async addMember(input: AddProjectMemberInput, requesterId: string) {
     const requesterMembership = await this.prisma.projectMember.findUnique({
@@ -40,21 +44,71 @@ export class ProjectMembersService {
     });
 
     if (existingMember) {
-      throw new ConflictException('El usuario ya es miembro de este proyecto.');
+      if (existingMember.status === 'PENDING') {
+        throw new ConflictException(
+          'Este usuario ya tiene una invitación pendiente.',
+        );
+      }
+      throw new ConflictException(
+        'El usuario ya es miembro activo de este proyecto.',
+      );
     }
 
-    return this.prisma.projectMember.create({
+    const newMember = await this.prisma.projectMember.create({
       data: {
         projectId: input.projectId,
         userId: userToAdd.id,
         role: input.role,
+        status: 'PENDING',
       },
       include: {
-        user: {
-          select: { id: true, name: true, avatarUrl: true }, // El PublicUser exacto
-        },
+        project: true,
+        user: true,
       },
     });
+
+    await this.notificationsService.createSystemNotification({
+      userId: userToAdd.id,
+      type: 'PROJECT_INVITATION',
+      title: 'Nueva invitación a proyecto',
+      message: `Has sido invitado a participar en "${newMember.project.name}" como ${input.role}.`,
+      entityId: input.projectId,
+    });
+
+    return newMember;
+  }
+
+  async respondToInvitation(
+    projectId: string,
+    userId: string,
+    accept: boolean,
+  ) {
+    const invitation = await this.prisma.projectMember.findUnique({
+      where: {
+        userId_projectId: { userId, projectId },
+      },
+    });
+
+    if (!invitation || invitation.status !== 'PENDING') {
+      throw new NotFoundException(
+        'No tienes ninguna invitación pendiente para este proyecto.',
+      );
+    }
+
+    if (accept) {
+      return this.prisma.projectMember.update({
+        where: { id: invitation.id },
+        data: { status: 'ACTIVE' },
+        include: {
+          user: { select: { id: true, name: true, avatarUrl: true } },
+        },
+      });
+    } else {
+      await this.prisma.projectMember.delete({
+        where: { id: invitation.id },
+      });
+      return null;
+    }
   }
 
   async updateRole(input: UpdateProjectMemberInput, requesterId: string) {

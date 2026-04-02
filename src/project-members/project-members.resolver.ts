@@ -20,6 +20,20 @@ export class ProjectMembersResolver {
     return this.projectMembersService.addMember(input, user.userId);
   }
 
+  @Mutation(() => ProjectMemberEntity, { nullable: true })
+  respondToInvitation(
+    @Args('projectId', { type: () => ID }) projectId: string,
+    @Args('accept', { type: () => Boolean }) accept: boolean,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.projectMembersService.respondToInvitation(
+      projectId,
+      userId,
+      accept,
+    );
+  }
+
   @Mutation(() => ProjectMemberEntity)
   updateProjectMemberRole(
     @Args('input') input: UpdateProjectMemberInput,

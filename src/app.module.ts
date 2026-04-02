@@ -13,7 +13,13 @@ import { GoogleStrategy } from './auth/strategies/google.strategy';
 import { JwtStrategy } from './auth/strategies/wt.strategy';
 import { ProjectsModule } from './projects/projects.module';
 import { ProjectMembersModule } from './project-members/project-members.module';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { NotificationsModule } from './notifications/notifications.module';
 
+const devProviders =
+  process.env.NODE_ENV !== 'production'
+    ? [{ provide: APP_INTERCEPTOR, useClass: LoggingInterceptor }]
+    : [];
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,8 +37,15 @@ import { ProjectMembersModule } from './project-members/project-members.module';
     PrismaModule,
     ProjectsModule,
     ProjectMembersModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AppResolver, GoogleStrategy, JwtStrategy],
+  providers: [
+    AppService,
+    AppResolver,
+    GoogleStrategy,
+    JwtStrategy,
+    ...devProviders,
+  ],
 })
 export class AppModule {}
