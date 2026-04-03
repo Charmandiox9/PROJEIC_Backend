@@ -12,6 +12,7 @@ import {
 import {
   ProjectStatus,
   ProjectMethodology,
+  ProjectRole,
 } from '../../common/enums/project.enums';
 
 @InputType({ description: 'Filters and pagination for listing projects' })
@@ -65,4 +66,19 @@ export class ProjectsFilterInput {
   @IsInt()
   @Min(0)
   skip?: number;
+
+  @Field(() => Boolean, { nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isInstitutional?: boolean;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  subjectId?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsEnum(ProjectRole)
+  myRole?: string;
 }

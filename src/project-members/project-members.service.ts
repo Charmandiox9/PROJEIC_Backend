@@ -89,8 +89,6 @@ export class ProjectMembersService {
       },
     });
 
-    // Limpieza agresiva de notificaciones antes de validar. 
-    // Si la invitación ya fue procesada o borrada por DB, limpiamos la notificación atascada.
     await this.prisma.notification.deleteMany({
       where: {
         userId: userId,

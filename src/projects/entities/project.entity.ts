@@ -3,8 +3,11 @@ import {
   ProjectStatus,
   ProjectMethodology,
   MemberStatus,
+  ProjectRole,
 } from '@prisma/client';
 import '../../common/enums/project.enums';
+import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { SubjectEntity } from '../../subjects/entities/subject.entity';
 
 registerEnumType(MemberStatus, { name: 'MemberStatus' });
 
@@ -87,4 +90,25 @@ export class ProjectEntity {
       'Members of the project (only included when explicitly requested)',
   })
   members?: ProjectMemberEntity[];
+
+  @Field(() => Boolean, { nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isInstitutional?: boolean;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'ID of the subject area this project belongs to',
+  })
+  @IsOptional()
+  @IsString()
+  subjectId?: string;
+
+  @Field(() => SubjectEntity, { nullable: true })
+  subject?: SubjectEntity;
+
+  @Field(() => ProjectRole, { nullable: true })
+  @IsOptional()
+  @IsEnum(ProjectRole)
+  myRole?: ProjectRole;
 }

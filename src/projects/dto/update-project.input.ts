@@ -36,4 +36,10 @@ export class UpdateProjectInput extends PartialType(CreateProjectInput) {
   @IsOptional()
   @IsBoolean()
   assignMeAsLeader?: boolean;
+
+  @Field(() => Boolean, { nullable: true })
+  isInstitutional?: boolean;
+
+  @Field(() => String, { nullable: true })
+  subjectId?: string;
 }

@@ -69,4 +69,19 @@ export class CreateProjectInput {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isInstitutional?: boolean;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  subjectId?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  professorId?: string;
 }

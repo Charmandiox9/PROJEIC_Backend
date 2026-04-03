@@ -16,6 +16,7 @@ input CreateProjectInput {
 
   """Optional description (max 500 chars)"""
   description: String
+  isInstitutional: Boolean
 
   """Make project visible to everyone"""
   isPublic: Boolean = false
@@ -25,9 +26,20 @@ input CreateProjectInput {
 
   """Project display name (3–100 chars)"""
   name: String!
+  professorId: String
 
   """Initial status (defaults to ACTIVE)"""
   status: ProjectStatus = ACTIVE
+  subjectId: String
+}
+
+input CreateSubjectInput {
+  code: String
+  name: String!
+  period: String!
+
+  """IDs de los profesores"""
+  professorIds: [String!]!
 }
 
 """
@@ -47,15 +59,18 @@ type Mutation {
   """Soft-delete a project (sets isArchived = true)"""
   archiveProject(id: ID!): ProjectEntity!
   createProject(input: CreateProjectInput!): ProjectEntity!
+  createSubject(input: CreateSubjectInput!): SubjectEntity!
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
   removeProjectMember(memberId: ID!): Boolean!
+  removeSubject(id: String!): SubjectEntity!
   respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
+  updateSubject(input: UpdateSubjectInput!): SubjectEntity!
 }
 
 type NotificationEntity {
@@ -108,6 +123,7 @@ type ProjectEntity {
 
   """Soft-delete flag; archived projects are hidden by default"""
   isArchived: Boolean!
+  isInstitutional: Boolean
 
   """Whether the project is visible to all users"""
   isPublic: Boolean!
@@ -117,12 +133,17 @@ type ProjectEntity {
 
   """Development methodology in use"""
   methodology: ProjectMethodology!
+  myRole: ProjectRole
 
   """Display name of the project"""
   name: String!
 
   """Current lifecycle status"""
   status: ProjectStatus!
+  subject: SubjectEntity
+
+  """ID of the subject area this project belongs to"""
+  subjectId: String
 
   """ISO timestamp of last update"""
   updatedAt: DateTime!
@@ -164,10 +185,12 @@ enum ProjectStatus {
 input ProjectsFilterInput {
   """Include archived projects"""
   includeArchived: Boolean = false
+  isInstitutional: Boolean
 
   """Filter by visibility"""
   isPublic: Boolean
   methodology: ProjectMethodology
+  myRole: String
 
   """Search by name (case-insensitive)"""
   search: String
@@ -175,6 +198,7 @@ input ProjectsFilterInput {
   """Offset for pagination"""
   skip: Int = 0
   status: ProjectStatus
+  subjectId: String
 
   """Max results (1–100)"""
   take: Int = 20
@@ -193,6 +217,16 @@ type Query {
   me: User!
   myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
   myProjects(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
+  subject(id: String!): SubjectEntity!
+  subjects: [SubjectEntity!]!
+}
+
+type SubjectEntity {
+  code: String
+  id: ID!
+  name: String!
+  period: String!
+  professors: [PublicUser!]
 }
 
 """Data to update an existing project (all fields optional)"""
@@ -203,19 +237,32 @@ input UpdateProjectInput {
 
   """ID of the project to update"""
   id: ID!
+  isInstitutional: Boolean
   isPublic: Boolean
 
   """Methodology (defaults to KANBAN)"""
   methodology: ProjectMethodology = KANBAN
   name: String
+  professorId: String
 
   """Initial status (defaults to ACTIVE)"""
   status: ProjectStatus = ACTIVE
+  subjectId: String
 }
 
 input UpdateProjectMemberInput {
   memberId: ID!
   role: ProjectRole!
+}
+
+input UpdateSubjectInput {
+  code: String
+  id: String!
+  name: String
+  period: String
+
+  """IDs de los profesores"""
+  professorIds: [String!]
 }
 
 type User {

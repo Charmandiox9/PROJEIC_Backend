@@ -109,6 +109,7 @@ model User {
   attachments    Attachment[]
   activityLogs   ActivityLog[]
   notifications  Notification[]
+  taughtSubjects Subject[]       @relation("SubjectProfessors")
 
   @@map("users")
 }
@@ -124,8 +125,12 @@ model Project {
   methodology ProjectMethodology @default(KANBAN)
   isPublic    Boolean            @default(false)
   isArchived  Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+
+  isInstitutional Boolean @default(false)
+  subjectId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   members      ProjectMember[]
   boards       Board[]
@@ -133,6 +138,7 @@ model Project {
   tags         Tag[]
   tasks        Task[]
   activityLogs ActivityLog[]
+  subject      Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
 
   @@map("projects")
 }
@@ -333,4 +339,17 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// ─── Ramos de la Universidad (EIC) ──────────────────────────────────────────
+model Subject {
+  id     String  @id @default(cuid())
+  name   String
+  code   String?
+  period String
+
+  professors User[]    @relation("SubjectProfessors")
+  projects   Project[] // Relación uno a muchos: Un ramo tiene muchos proyectos
+
+  @@map("subjects")
 }
