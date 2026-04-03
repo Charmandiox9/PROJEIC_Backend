@@ -44,6 +44,7 @@ export class ProjectsService {
         create: {
           userId: userId,
           role: ProjectRole.LEADER,
+          status: MemberStatus.ACTIVE,
         },
       },
     };
