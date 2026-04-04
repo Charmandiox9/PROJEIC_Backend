@@ -9,6 +9,13 @@ input AddProjectMemberInput {
   role: ProjectRole!
 }
 
+input CreateExpectedResultInput {
+  description: String
+  ownerId: ID!
+  projectId: ID!
+  title: String!
+}
+
 """Data required to create a new project"""
 input CreateProjectInput {
   """Hex color (e.g. #3B82F6)"""
@@ -23,6 +30,7 @@ input CreateProjectInput {
 
   """Methodology (defaults to KANBAN)"""
   methodology: ProjectMethodology = KANBAN
+  mode: ProjectMode
 
   """Project display name (3–100 chars)"""
   name: String!
@@ -42,10 +50,41 @@ input CreateSubjectInput {
   professorIds: [String!]!
 }
 
+input CreateTaskInput {
+  creatorId: String!
+  expectedResultId: String
+  projectId: String!
+  title: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+type Evidence {
+  createdAt: DateTime!
+  fileKey: String
+  id: ID!
+  type: String!
+  url: String
+}
+
+type ExpectedResult {
+  createdAt: DateTime!
+  description: String
+  evidences: [Evidence]
+  history: [StatusLog]
+  id: ID!
+  owner: User!
+  ownerId: String!
+  progress: Int!
+  projectId: String!
+  status: ResultStatus!
+  tasks: [Task]
+  title: String!
+  updatedAt: DateTime!
+}
 
 enum MemberStatus {
   ACTIVE
@@ -58,8 +97,10 @@ type Mutation {
 
   """Soft-delete a project (sets isArchived = true)"""
   archiveProject(id: ID!): ProjectEntity!
+  createExpectedResult(input: CreateExpectedResultInput!): ExpectedResult!
   createProject(input: CreateProjectInput!): ProjectEntity!
   createSubject(input: CreateSubjectInput!): SubjectEntity!
+  createTask(createTaskInput: CreateTaskInput!): Task!
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
@@ -67,10 +108,13 @@ type Mutation {
   markNotificationAsRead(id: ID!): NotificationEntity!
   removeProjectMember(memberId: ID!): Boolean!
   removeSubject(id: String!): SubjectEntity!
+  removeTask(id: String!): Task!
   respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
+  updateResultStatus(input: UpdateResultStatusInput!): ExpectedResult!
   updateSubject(input: UpdateSubjectInput!): SubjectEntity!
+  updateTask(updateTaskInput: UpdateTaskInput!): Task!
 }
 
 type NotificationEntity {
@@ -133,6 +177,7 @@ type ProjectEntity {
 
   """Development methodology in use"""
   methodology: ProjectMethodology!
+  mode: ProjectMode
   myRole: ProjectRole
 
   """Display name of the project"""
@@ -160,8 +205,15 @@ type ProjectMemberEntity {
 """Development methodology used in the project"""
 enum ProjectMethodology {
   KANBAN
+  NONE
   SCRUM
   SCRUMBAN
+}
+
+"""Modo de gestión del proyecto (Clásico o Híbrido)"""
+enum ProjectMode {
+  CLASSIC
+  HYBRID
 }
 
 """Role of a user within a project"""
@@ -211,6 +263,7 @@ type PublicUser {
 }
 
 type Query {
+  expectedResultsByProject(projectId: String!): [ExpectedResult!]!
   findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
   findOne(id: String!): ProjectEntity!
   health: String!
@@ -221,12 +274,40 @@ type Query {
   subjects: [SubjectEntity!]!
 }
 
+"""Estado de un Resultado Esperado"""
+enum ResultStatus {
+  COMPLETED
+  IN_REVIEW
+  NOT_STARTED
+  STARTED
+  VALIDATED
+}
+
+type StatusLog {
+  createdAt: DateTime!
+  id: ID!
+  newStatus: String!
+  previousStatus: String!
+  reason: String
+}
+
 type SubjectEntity {
   code: String
   id: ID!
   name: String!
   period: String!
   professors: [PublicUser!]
+}
+
+type Task {
+  createdAt: DateTime!
+  creatorId: String!
+  description: String
+  expectedResultId: String
+  id: ID!
+  projectId: String!
+  status: String!
+  title: String!
 }
 
 """Data to update an existing project (all fields optional)"""
@@ -242,6 +323,7 @@ input UpdateProjectInput {
 
   """Methodology (defaults to KANBAN)"""
   methodology: ProjectMethodology = KANBAN
+  mode: ProjectMode
   name: String
   professorId: String
 
@@ -255,6 +337,15 @@ input UpdateProjectMemberInput {
   role: ProjectRole!
 }
 
+input UpdateResultStatusInput {
+  evidenceFileKey: String
+  evidenceType: String
+  evidenceUrl: String
+  reason: String
+  resultId: String!
+  status: ResultStatus!
+}
+
 input UpdateSubjectInput {
   code: String
   id: String!
@@ -263,6 +354,12 @@ input UpdateSubjectInput {
 
   """IDs de los profesores"""
   professorIds: [String!]
+}
+
+input UpdateTaskInput {
+  id: ID!
+  status: String
+  title: String
 }
 
 type User {

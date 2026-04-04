@@ -5,8 +5,10 @@ import {
   IsUUID,
   IsBoolean,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
 import { CreateProjectInput } from './create-project.input';
+import { ProjectMode } from 'src/common/enums/project.enums';
 
 @InputType({
   description: 'Data to update an existing project (all fields optional)',
@@ -42,4 +44,9 @@ export class UpdateProjectInput extends PartialType(CreateProjectInput) {
 
   @Field(() => String, { nullable: true })
   subjectId?: string;
+
+  @Field(() => ProjectMode, { nullable: true })
+  @IsEnum(ProjectMode)
+  @IsOptional()
+  mode?: ProjectMode;
 }

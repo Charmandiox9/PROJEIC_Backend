@@ -10,6 +10,7 @@ import {
   ProjectMethodology,
   ProjectRole,
   MemberStatus,
+  ProjectMode,
 } from '@prisma/client';
 import { ProjectsRepository } from './projects.repository';
 import { CreateProjectInput } from './dto/create-project.input';
@@ -64,10 +65,17 @@ export class ProjectsService {
       description: input.description ?? null,
       color: input.color ?? '#3B82F6',
       status: input.status ?? ProjectStatus.ACTIVE,
-      methodology: input.methodology ?? ProjectMethodology.KANBAN,
+
       isPublic: input.isPublic ?? false,
       isInstitutional: input.isInstitutional ?? false,
       subjectId: input.isInstitutional ? input.subjectId : null,
+
+      mode: input.mode ?? ProjectMode.CLASSIC,
+
+      methodology:
+        input.mode === ProjectMode.HYBRID
+          ? ProjectMethodology.NONE
+          : (input.methodology ?? ProjectMethodology.KANBAN),
 
       members: {
         create: initialMembers,

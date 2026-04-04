@@ -1,7 +1,19 @@
 import { registerEnumType } from '@nestjs/graphql';
-import { ProjectStatus, ProjectRole, ProjectMethodology } from '@prisma/client';
+import {
+  ProjectStatus,
+  ProjectRole,
+  ProjectMethodology,
+  ProjectMode,
+  ResultStatus,
+} from '@prisma/client';
 
-export { ProjectStatus, ProjectRole, ProjectMethodology };
+export {
+  ProjectStatus,
+  ProjectRole,
+  ProjectMethodology,
+  ProjectMode,
+  ResultStatus,
+};
 
 registerEnumType(ProjectStatus, {
   name: 'ProjectStatus',
@@ -16,4 +28,14 @@ registerEnumType(ProjectRole, {
 registerEnumType(ProjectMethodology, {
   name: 'ProjectMethodology',
   description: 'Development methodology used in the project',
+});
+
+registerEnumType(ProjectMode, {
+  name: 'ProjectMode',
+  description: 'Modo de gestión del proyecto (Clásico o Híbrido)',
+});
+
+registerEnumType(ResultStatus, {
+  name: 'ResultStatus',
+  description: 'Estado de un Resultado Esperado',
 });

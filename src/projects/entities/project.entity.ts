@@ -4,6 +4,7 @@ import {
   ProjectMethodology,
   MemberStatus,
   ProjectRole,
+  ProjectMode,
 } from '@prisma/client';
 import '../../common/enums/project.enums';
 import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
@@ -111,4 +112,9 @@ export class ProjectEntity {
   @IsOptional()
   @IsEnum(ProjectRole)
   myRole?: ProjectRole;
+
+  @Field(() => ProjectMode, { nullable: true })
+  @IsEnum(ProjectMode)
+  @IsOptional()
+  mode?: ProjectMode;
 }

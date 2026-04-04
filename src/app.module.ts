@@ -16,6 +16,10 @@ import { ProjectMembersModule } from './project-members/project-members.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SubjectsModule } from './subjects/subjects.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { ExpectedResultsModule } from './expected-results/expected-results.module';
+import { TasksModule } from './tasks/tasks.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -40,6 +44,13 @@ const devProviders =
     ProjectMembersModule,
     NotificationsModule,
     SubjectsModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
+    UploadsModule,
+    ExpectedResultsModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [

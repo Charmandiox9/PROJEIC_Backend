@@ -14,6 +14,7 @@ import {
 import {
   ProjectStatus,
   ProjectMethodology,
+  ProjectMode,
 } from '../../common/enums/project.enums';
 
 @InputType({ description: 'Data required to create a new project' })
@@ -84,4 +85,9 @@ export class CreateProjectInput {
   @IsOptional()
   @IsString()
   professorId?: string;
+
+  @Field(() => ProjectMode, { nullable: true })
+  @IsEnum(ProjectMode)
+  @IsOptional()
+  mode?: ProjectMode;
 }
