@@ -75,6 +75,7 @@ enum ActivityEntity {
   MEMBER
   BOARD
   SPRINT
+  EXPECTED_RESULT
 }
 
 enum MemberStatus {

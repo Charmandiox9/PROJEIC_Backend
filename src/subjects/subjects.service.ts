@@ -59,4 +59,16 @@ export class SubjectsService {
       where: { id },
     });
   }
+
+  async countSemesters() {
+    const result = await this.prisma.subject.findMany({
+      distinct: ['period'],
+      select: { period: true },
+    });
+    return result.length;
+  }
+
+  async countSubjects() {
+    return this.prisma.subject.count();
+  }
 }

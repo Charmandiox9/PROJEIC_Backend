@@ -11,6 +11,8 @@ import {
   ProjectRole,
   MemberStatus,
   ProjectMode,
+  ActivityAction,
+  ActivityEntity,
 } from '@prisma/client';
 import { ProjectsRepository } from './projects.repository';
 import { CreateProjectInput } from './dto/create-project.input';
@@ -82,7 +84,20 @@ export class ProjectsService {
       },
     };
 
-    return this.repository.create(data);
+    const newProject = await this.repository.create(data);
+
+    await this.prisma.activityLog.create({
+      data: {
+        projectId: newProject.id,
+        userId: userId, // Quien lo creó
+        action: ActivityAction.CREATED,
+        entity: ActivityEntity.PROJECT,
+        entityId: newProject.id,
+        meta: { title: newProject.name },
+      },
+    });
+
+    return newProject;
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────
@@ -178,6 +193,13 @@ export class ProjectsService {
 
   async update(input: UpdateProjectInput, userId: string) {
     await this.assertExists(input.id);
+
+    const oldProject = await this.repository.findById(input.id);
+
+    if (!oldProject) {
+      throw new NotFoundException(`Project with id "${input.id}" not found`);
+    }
+
     const { id, assignMeAsLeader, ...rest } = input;
 
     const data: Record<string, any> = Object.fromEntries(
@@ -185,15 +207,15 @@ export class ProjectsService {
     );
 
     const membersUpserts = [];
-
     const notifiedProfessors: string[] = [];
     let subjectName = '';
 
+    const isNewSubjectAssigned =
+      input.isInstitutional && input.subjectId !== oldProject.subjectId;
+
     if (assignMeAsLeader) {
       membersUpserts.push({
-        where: {
-          userId_projectId: { userId: userId, projectId: id },
-        },
+        where: { userId_projectId: { userId: userId, projectId: id } },
         update: { role: ProjectRole.LEADER },
         create: {
           userId: userId,
@@ -211,12 +233,9 @@ export class ProjectsService {
 
       if (subject && subject.professors) {
         subjectName = subject.name;
-
         for (const prof of subject.professors) {
           membersUpserts.push({
-            where: {
-              userId_projectId: { userId: prof.id, projectId: id },
-            },
+            where: { userId_projectId: { userId: prof.id, projectId: id } },
             update: {
               role: ProjectRole.SUPERVISOR,
               status: MemberStatus.ACTIVE,
@@ -227,16 +246,15 @@ export class ProjectsService {
               status: MemberStatus.ACTIVE,
             },
           });
-
-          notifiedProfessors.push(prof.id);
+          if (isNewSubjectAssigned) {
+            notifiedProfessors.push(prof.id);
+          }
         }
       }
     }
 
     if (membersUpserts.length > 0) {
-      data.members = {
-        upsert: membersUpserts,
-      };
+      data.members = { upsert: membersUpserts };
     }
 
     if (Object.keys(data).length === 0) {
@@ -259,6 +277,61 @@ export class ProjectsService {
           }),
         ),
       );
+    }
+
+    const changes: Record<string, { from: any; to: any }> = {};
+
+    if (input.name !== undefined && input.name !== oldProject.name) {
+      changes.name = { from: oldProject.name, to: input.name };
+    }
+    if (input.status !== undefined && input.status !== oldProject.status) {
+      changes.status = { from: oldProject.status, to: input.status };
+    }
+    if (
+      input.description !== undefined &&
+      input.description !== oldProject.description
+    ) {
+      changes.description = {
+        from: oldProject.description || 'Sin descripción',
+        to: input.description || 'Sin descripción',
+      };
+    }
+    if (input.color !== undefined && input.color !== oldProject.color) {
+      changes.color = { from: oldProject.color, to: input.color };
+    }
+    if (input.mode !== undefined && input.mode !== oldProject.mode) {
+      changes.mode = { from: oldProject.mode, to: input.mode };
+    }
+    if (
+      input.isPublic !== undefined &&
+      input.isPublic !== oldProject.isPublic
+    ) {
+      changes.isPublic = { from: oldProject.isPublic, to: input.isPublic };
+    }
+    if (
+      input.isInstitutional !== undefined &&
+      input.isInstitutional !== oldProject.isInstitutional
+    ) {
+      changes.isInstitutional = {
+        from: oldProject.isInstitutional,
+        to: input.isInstitutional,
+      };
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await this.prisma.activityLog.create({
+        data: {
+          projectId: id,
+          userId: userId,
+          action: ActivityAction.UPDATED,
+          entity: ActivityEntity.PROJECT,
+          entityId: id,
+          meta: {
+            title: updatedProject.name,
+            changes: changes,
+          },
+        },
+      });
     }
 
     return updatedProject;

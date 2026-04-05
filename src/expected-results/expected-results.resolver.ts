@@ -3,6 +3,7 @@ import { ExpectedResultsService } from './expected-results.service';
 import { ExpectedResultEntity } from './entities/expected-result.entity';
 import { CreateExpectedResultInput } from './dto/create-expected-result.input';
 import { UpdateResultStatusInput } from './dto/update-result-status.input';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Resolver(() => ExpectedResultEntity)
 export class ExpectedResultsResolver {
@@ -21,7 +22,11 @@ export class ExpectedResultsResolver {
   }
 
   @Mutation(() => ExpectedResultEntity)
-  updateResultStatus(@Args('input') input: UpdateResultStatusInput) {
-    return this.expectedResultsService.updateStatus(input);
+  updateResultStatus(
+    @Args('input') input: UpdateResultStatusInput,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.expectedResultsService.updateStatus(input, userId);
   }
 }

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AddProjectMemberInput } from './dto/add-member.input';
 import { UpdateProjectMemberInput } from './dto/update-member.input';
+import { ActivityEntity, ActivityAction } from '@prisma/client';
 
 @Injectable()
 export class ProjectMembersService {
@@ -75,6 +76,17 @@ export class ProjectMembersService {
       entityId: input.projectId,
     });
 
+    await this.prisma.activityLog.create({
+      data: {
+        projectId: input.projectId,
+        userId: requesterId,
+        action: ActivityAction.CREATED,
+        entity: ActivityEntity.MEMBER,
+        entityId: newMember.id,
+        meta: { title: userToAdd.name, role: input.role },
+      },
+    });
+
     return newMember;
   }
 
@@ -84,17 +96,11 @@ export class ProjectMembersService {
     accept: boolean,
   ) {
     const invitation = await this.prisma.projectMember.findUnique({
-      where: {
-        userId_projectId: { userId, projectId },
-      },
+      where: { userId_projectId: { userId, projectId } },
     });
 
     await this.prisma.notification.deleteMany({
-      where: {
-        userId: userId,
-        type: 'PROJECT_INVITATION',
-        entityId: projectId,
-      },
+      where: { userId, type: 'PROJECT_INVITATION', entityId: projectId },
     });
 
     if (!invitation || invitation.status !== 'PENDING') {
@@ -104,13 +110,26 @@ export class ProjectMembersService {
     }
 
     if (accept) {
-      return this.prisma.projectMember.update({
+      const activeMember = await this.prisma.projectMember.update({
         where: { id: invitation.id },
         data: { status: 'ACTIVE' },
         include: {
           user: { select: { id: true, name: true, avatarUrl: true } },
         },
       });
+
+      await this.prisma.activityLog.create({
+        data: {
+          projectId: invitation.projectId,
+          userId: userId,
+          action: ActivityAction.JOINED,
+          entity: ActivityEntity.MEMBER,
+          entityId: invitation.id,
+          meta: { role: invitation.role },
+        },
+      });
+
+      return activeMember;
     } else {
       await this.prisma.projectMember.delete({
         where: { id: invitation.id },
@@ -120,19 +139,66 @@ export class ProjectMembersService {
   }
 
   async updateRole(input: UpdateProjectMemberInput, requesterId: string) {
-    return this.prisma.projectMember.update({
+    const oldMember = await this.prisma.projectMember.findUnique({
+      where: { id: input.memberId },
+      include: { user: { select: { name: true } } },
+    });
+
+    if (!oldMember) {
+      throw new NotFoundException('Miembro no encontrado');
+    }
+
+    const updatedMember = await this.prisma.projectMember.update({
       where: { id: input.memberId },
       data: { role: input.role },
-      include: {
-        user: { select: { id: true, name: true, avatarUrl: true } },
-      },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
     });
+
+    if (oldMember.role !== input.role) {
+      await this.prisma.activityLog.create({
+        data: {
+          projectId: updatedMember.projectId,
+          userId: requesterId,
+          action: ActivityAction.UPDATED,
+          entity: ActivityEntity.MEMBER,
+          entityId: updatedMember.id,
+          meta: {
+            title: updatedMember.user.name,
+            previousRole: oldMember.role,
+            newRole: input.role,
+          },
+        },
+      });
+    }
+
+    return updatedMember;
   }
 
   async removeMember(memberId: string, requesterId: string) {
-    // Validar permisos antes de borrar
-    return this.prisma.projectMember.delete({
+    const memberToDelete = await this.prisma.projectMember.findUnique({
+      where: { id: memberId },
+      include: { user: true },
+    });
+
+    if (!memberToDelete) throw new NotFoundException('Miembro no encontrado');
+
+    await this.prisma.projectMember.delete({
       where: { id: memberId },
     });
+
+    const isLeaving = requesterId === memberToDelete.userId;
+
+    await this.prisma.activityLog.create({
+      data: {
+        projectId: memberToDelete.projectId,
+        userId: requesterId,
+        action: isLeaving ? ActivityAction.LEFT : ActivityAction.DELETED,
+        entity: ActivityEntity.MEMBER,
+        entityId: memberId,
+        meta: { title: memberToDelete.user.name },
+      },
+    });
+
+    return { success: true };
   }
 }

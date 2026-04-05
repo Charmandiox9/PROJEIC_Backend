@@ -35,4 +35,14 @@ export class SubjectsResolver {
   removeSubject(@Args('id', { type: () => String }) id: string) {
     return this.subjectsService.remove(id);
   }
+
+  @Query(() => Int)
+  async countSemesters() {
+    return this.subjectsService.countSemesters();
+  }
+
+  @Query(() => Int)
+  async countSubjects() {
+    return this.subjectsService.countSubjects();
+  }
 }

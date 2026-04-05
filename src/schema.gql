@@ -2,6 +2,17 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type ActivityLog {
+  action: String!
+  createdAt: DateTime!
+  entity: String!
+  entityId: String!
+  id: ID!
+  meta: String
+  projectId: String!
+  user: User!
+}
+
 input AddProjectMemberInput {
   """Correo del usuario que quieres invitar"""
   email: String!
@@ -263,6 +274,12 @@ type PublicUser {
 }
 
 type Query {
+  activityLogsByProject(projectId: String!): [ActivityLog!]!
+  countExternalProfessorsRegistered: Int!
+  countProfessorsRegistered: Int!
+  countSemesters: Int!
+  countStudentsRegistered: Int!
+  countSubjects: Int!
   expectedResultsByProject(projectId: String!): [ExpectedResult!]!
   findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
   findOne(id: String!): ProjectEntity!

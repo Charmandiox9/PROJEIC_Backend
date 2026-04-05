@@ -20,6 +20,8 @@ import { UploadsModule } from './uploads/uploads.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ExpectedResultsModule } from './expected-results/expected-results.module';
 import { TasksModule } from './tasks/tasks.module';
+import { UsersModule } from './users/users.module';
+import { ActivityLogsModule } from './activity-logs/activity-logs.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -51,6 +53,8 @@ const devProviders =
     UploadsModule,
     ExpectedResultsModule,
     TasksModule,
+    UsersModule,
+    ActivityLogsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -5,6 +5,8 @@ import {
   ProjectMethodology,
   ProjectMode,
   ResultStatus,
+  ActivityEntity,
+  ActivityAction,
 } from '@prisma/client';
 
 export {
@@ -13,6 +15,8 @@ export {
   ProjectMethodology,
   ProjectMode,
   ResultStatus,
+  ActivityEntity,
+  ActivityAction,
 };
 
 registerEnumType(ProjectStatus, {

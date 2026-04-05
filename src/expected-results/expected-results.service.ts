@@ -4,13 +4,14 @@ import { ResultStatus } from '@prisma/client';
 import { CreateExpectedResultInput } from './dto/create-expected-result.input';
 import { UpdateResultStatusInput } from './dto/update-result-status.input';
 import { BadRequestException } from '@nestjs/common';
+import { ActivityEntity, ActivityAction } from '@prisma/client';
 
 @Injectable()
 export class ExpectedResultsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(input: CreateExpectedResultInput) {
-    return this.prisma.expectedResult.create({
+    const newResult = await this.prisma.expectedResult.create({
       data: {
         title: input.title,
         description: input.description,
@@ -18,6 +19,19 @@ export class ExpectedResultsService {
         ownerId: input.ownerId,
       },
     });
+
+    await this.prisma.activityLog.create({
+      data: {
+        projectId: newResult.projectId,
+        userId: newResult.ownerId,
+        action: ActivityAction.CREATED,
+        entity: ActivityEntity.EXPECTED_RESULT,
+        entityId: newResult.id,
+        meta: { title: newResult.title },
+      },
+    });
+
+    return newResult;
   }
 
   async findByProject(projectId: string) {
@@ -41,7 +55,7 @@ export class ExpectedResultsService {
     }));
   }
 
-  async updateStatus(input: UpdateResultStatusInput) {
+  async updateStatus(input: UpdateResultStatusInput, userId: string) {
     const {
       resultId,
       status,
@@ -102,6 +116,19 @@ export class ExpectedResultsService {
             fileKey: evidenceFileKey,
           },
         });
+
+        if (status === result.status) {
+          await tx.activityLog.create({
+            data: {
+              projectId: result.projectId,
+              userId: userId,
+              action: ActivityAction.UPDATED,
+              entity: ActivityEntity.EXPECTED_RESULT,
+              entityId: resultId,
+              meta: { title: result.title, addedEvidence: true },
+            },
+          });
+        }
       }
 
       if (status !== result.status) {
@@ -112,6 +139,21 @@ export class ExpectedResultsService {
             newStatus: status,
             reason: reason || (isAdvancing ? 'Avance de progreso' : null),
             userId: result.ownerId,
+          },
+        });
+
+        await tx.activityLog.create({
+          data: {
+            projectId: result.projectId,
+            userId: userId,
+            action: ActivityAction.UPDATED,
+            entity: ActivityEntity.EXPECTED_RESULT,
+            entityId: resultId,
+            meta: {
+              title: result.title,
+              previousStatus: result.status,
+              newStatus: status,
+            },
           },
         });
       }
