@@ -48,7 +48,7 @@ const devProviders =
     SubjectsModule,
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
-      serveRoot: '/uploads',
+      serveRoot: '/projeic/api/uploads',
     }),
     UploadsModule,
     ExpectedResultsModule,

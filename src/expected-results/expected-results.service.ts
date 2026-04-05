@@ -117,18 +117,22 @@ export class ExpectedResultsService {
           },
         });
 
-        if (status === result.status) {
-          await tx.activityLog.create({
-            data: {
-              projectId: result.projectId,
-              userId: userId,
-              action: ActivityAction.UPDATED,
-              entity: ActivityEntity.EXPECTED_RESULT,
-              entityId: resultId,
-              meta: { title: result.title, addedEvidence: true },
+        await tx.activityLog.create({
+          data: {
+            projectId: result.projectId,
+            userId: userId,
+            action: ActivityAction.UPDATED,
+            entity: ActivityEntity.EXPECTED_RESULT,
+            entityId: resultId,
+            meta: {
+              title: result.title,
+              addedEvidence: true,
+              evidenceUrl: evidenceUrl,
+              evidenceFileKey: evidenceFileKey,
+              evidenceType: evidenceType,
             },
-          });
-        }
+          },
+        });
       }
 
       if (status !== result.status) {
@@ -138,7 +142,7 @@ export class ExpectedResultsService {
             previousStatus: result.status,
             newStatus: status,
             reason: reason || (isAdvancing ? 'Avance de progreso' : null),
-            userId: result.ownerId,
+            userId: userId,
           },
         });
 

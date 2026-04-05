@@ -16,7 +16,7 @@ async function bootstrap() {
   const uploadPath = join(process.cwd(), 'uploads');
 
   app.useStaticAssets(uploadPath, {
-    prefix: '/uploads/',
+    prefix: '/projeic/api/uploads/',
     index: false,
     fallthrough: false,
   });
