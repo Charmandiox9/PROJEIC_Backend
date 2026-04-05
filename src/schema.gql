@@ -2,9 +2,381 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type ActivityLog {
+  action: String!
+  createdAt: DateTime!
+  entity: String!
+  entityId: String!
+  id: ID!
+  meta: String
+  projectId: String!
+  user: User!
+}
+
+input AddProjectMemberInput {
+  """Correo del usuario que quieres invitar"""
+  email: String!
+  projectId: ID!
+  role: ProjectRole!
+}
+
+input CreateExpectedResultInput {
+  description: String
+  ownerId: ID!
+  projectId: ID!
+  title: String!
+}
+
+"""Data required to create a new project"""
+input CreateProjectInput {
+  """Hex color (e.g. #3B82F6)"""
+  color: String = "#3B82F6"
+
+  """Optional description (max 500 chars)"""
+  description: String
+  isInstitutional: Boolean
+
+  """Make project visible to everyone"""
+  isPublic: Boolean = false
+
+  """Methodology (defaults to KANBAN)"""
+  methodology: ProjectMethodology = KANBAN
+  mode: ProjectMode
+
+  """Project display name (3–100 chars)"""
+  name: String!
+  professorId: String
+
+  """Initial status (defaults to ACTIVE)"""
+  status: ProjectStatus = ACTIVE
+  subjectId: String
+}
+
+input CreateSubjectInput {
+  code: String
+  name: String!
+  period: String!
+
+  """IDs de los profesores"""
+  professorIds: [String!]!
+}
+
+input CreateTaskInput {
+  creatorId: String!
+  expectedResultId: String
+  projectId: String!
+  title: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Evidence {
+  createdAt: DateTime!
+  fileKey: String
+  id: ID!
+  type: String!
+  url: String
+}
+
+type ExpectedResult {
+  createdAt: DateTime!
+  description: String
+  evidences: [Evidence]
+  history: [StatusLog]
+  id: ID!
+  owner: User!
+  ownerId: String!
+  progress: Int!
+  projectId: String!
+  status: ResultStatus!
+  tasks: [Task]
+  title: String!
+  updatedAt: DateTime!
+}
+
+enum MemberStatus {
+  ACTIVE
+  PENDING
+  REJECTED
+}
+
+type Mutation {
+  addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
+
+  """Soft-delete a project (sets isArchived = true)"""
+  archiveProject(id: ID!): ProjectEntity!
+  createExpectedResult(input: CreateExpectedResultInput!): ExpectedResult!
+  createProject(input: CreateProjectInput!): ProjectEntity!
+  createSubject(input: CreateSubjectInput!): SubjectEntity!
+  createTask(createTaskInput: CreateTaskInput!): Task!
+
+  """Permanently delete a project and all its data (cascades)"""
+  deleteProject(id: ID!): ProjectEntity!
+  markAllNotificationsAsRead: Boolean!
+  markNotificationAsRead(id: ID!): NotificationEntity!
+  removeProjectMember(memberId: ID!): Boolean!
+  removeSubject(id: String!): SubjectEntity!
+  removeTask(id: String!): Task!
+  respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
+  updateProject(input: UpdateProjectInput!): ProjectEntity!
+  updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
+  updateResultStatus(input: UpdateResultStatusInput!): ExpectedResult!
+  updateSubject(input: UpdateSubjectInput!): SubjectEntity!
+  updateTask(updateTaskInput: UpdateTaskInput!): Task!
+}
+
+type NotificationEntity {
+  createdAt: DateTime!
+
+  """ID de la entidad relacionada (ej: projectId)"""
+  entityId: ID
+  id: ID!
+  isRead: Boolean!
+  message: String
+  title: String!
+  type: NotificationType!
+}
+
+enum NotificationType {
+  COMMENTARY_MENTION
+  PROJECT_INVITATION
+  SYSTEM_ALERT
+  TASK_ASSIGNED
+}
+
+"""Paginated list of projects"""
+type PaginatedProjects {
+  """Current page items"""
+  items: [ProjectEntity!]!
+
+  """Current offset"""
+  skip: Int!
+
+  """Page size used"""
+  take: Int!
+
+  """Total count (ignoring pagination)"""
+  total: Int!
+}
+
+"""Represents a project in the system"""
+type ProjectEntity {
+  """Hex color used for UI theming (e.g. #3B82F6)"""
+  color: String!
+
+  """ISO timestamp of creation"""
+  createdAt: DateTime!
+
+  """Optional long description"""
+  description: String
+
+  """Unique identifier (cuid)"""
+  id: ID!
+
+  """Soft-delete flag; archived projects are hidden by default"""
+  isArchived: Boolean!
+  isInstitutional: Boolean
+
+  """Whether the project is visible to all users"""
+  isPublic: Boolean!
+
+  """Members of the project (only included when explicitly requested)"""
+  members: [ProjectMemberEntity!]
+
+  """Development methodology in use"""
+  methodology: ProjectMethodology!
+  mode: ProjectMode
+  myRole: ProjectRole
+
+  """Display name of the project"""
+  name: String!
+
+  """Current lifecycle status"""
+  status: ProjectStatus!
+  subject: SubjectEntity
+
+  """ID of the subject area this project belongs to"""
+  subjectId: String
+
+  """ISO timestamp of last update"""
+  updatedAt: DateTime!
+}
+
+type ProjectMemberEntity {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  status: MemberStatus!
+  user: PublicUser!
+}
+
+"""Development methodology used in the project"""
+enum ProjectMethodology {
+  KANBAN
+  NONE
+  SCRUM
+  SCRUMBAN
+}
+
+"""Modo de gestión del proyecto (Clásico o Híbrido)"""
+enum ProjectMode {
+  CLASSIC
+  HYBRID
+}
+
+"""Role of a user within a project"""
+enum ProjectRole {
+  EXTERNAL
+  LEADER
+  STUDENT
+  SUPERVISOR
+}
+
+"""Current lifecycle status of a project"""
+enum ProjectStatus {
+  ACTIVE
+  CANCELLED
+  COMPLETED
+  ON_HOLD
+  STARTING
+}
+
+"""Filters and pagination for listing projects"""
+input ProjectsFilterInput {
+  """Include archived projects"""
+  includeArchived: Boolean = false
+  isInstitutional: Boolean
+
+  """Filter by visibility"""
+  isPublic: Boolean
+  methodology: ProjectMethodology
+  myRole: String
+
+  """Search by name (case-insensitive)"""
+  search: String
+
+  """Offset for pagination"""
+  skip: Int = 0
+  status: ProjectStatus
+  subjectId: String
+
+  """Max results (1–100)"""
+  take: Int = 20
+}
+
+type PublicUser {
+  avatarUrl: String
+  id: ID!
+  name: String!
+}
+
 type Query {
+  activityLogsByProject(projectId: String!): [ActivityLog!]!
+  countExternalProfessorsRegistered: Int!
+  countProfessorsRegistered: Int!
+  countSemesters: Int!
+  countStudentsRegistered: Int!
+  countSubjects: Int!
+  expectedResultsByProject(projectId: String!): [ExpectedResult!]!
+  findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
+  findOne(id: String!): ProjectEntity!
   health: String!
   me: User!
+  myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
+  myProjects(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
+  subject(id: String!): SubjectEntity!
+  subjects: [SubjectEntity!]!
+}
+
+"""Estado de un Resultado Esperado"""
+enum ResultStatus {
+  COMPLETED
+  IN_REVIEW
+  NOT_STARTED
+  STARTED
+  VALIDATED
+}
+
+type StatusLog {
+  createdAt: DateTime!
+  id: ID!
+  newStatus: String!
+  previousStatus: String!
+  reason: String
+}
+
+type SubjectEntity {
+  code: String
+  id: ID!
+  name: String!
+  period: String!
+  professors: [PublicUser!]
+}
+
+type Task {
+  createdAt: DateTime!
+  creatorId: String!
+  description: String
+  expectedResultId: String
+  id: ID!
+  projectId: String!
+  status: String!
+  title: String!
+}
+
+"""Data to update an existing project (all fields optional)"""
+input UpdateProjectInput {
+  assignMeAsLeader: Boolean
+  color: String
+  description: String
+
+  """ID of the project to update"""
+  id: ID!
+  isInstitutional: Boolean
+  isPublic: Boolean
+
+  """Methodology (defaults to KANBAN)"""
+  methodology: ProjectMethodology = KANBAN
+  mode: ProjectMode
+  name: String
+  professorId: String
+
+  """Initial status (defaults to ACTIVE)"""
+  status: ProjectStatus = ACTIVE
+  subjectId: String
+}
+
+input UpdateProjectMemberInput {
+  memberId: ID!
+  role: ProjectRole!
+}
+
+input UpdateResultStatusInput {
+  evidenceFileKey: String
+  evidenceType: String
+  evidenceUrl: String
+  reason: String
+  resultId: String!
+  status: ResultStatus!
+}
+
+input UpdateSubjectInput {
+  code: String
+  id: String!
+  name: String
+  period: String
+
+  """IDs de los profesores"""
+  professorIds: [String!]
+}
+
+input UpdateTaskInput {
+  id: ID!
+  status: String
+  title: String
 }
 
 type User {

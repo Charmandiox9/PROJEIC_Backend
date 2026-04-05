@@ -1,11 +1,15 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -15,8 +19,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const jwt = await this.authService.login(req.user);
-    res.redirect(
-      `http://localhost:3000/projeic/auth/success?token=${jwt.accessToken}`,
-    );
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/projeic/auth/success?token=${jwt.accessToken}`);
   }
 }

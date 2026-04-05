@@ -31,6 +31,7 @@ enum ProjectMethodology {
   KANBAN
   SCRUM
   SCRUMBAN
+  NONE
 }
 
 enum TaskStatus {
@@ -74,6 +75,33 @@ enum ActivityEntity {
   MEMBER
   BOARD
   SPRINT
+  EXPECTED_RESULT
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum NotificationType {
+  PROJECT_INVITATION
+  TASK_ASSIGNED
+  COMMENTARY_MENTION
+  SYSTEM_ALERT
+}
+
+enum ProjectMode {
+  CLASSIC
+  HYBRID
+}
+
+enum ResultStatus {
+  NOT_STARTED
+  STARTED
+  IN_REVIEW
+  VALIDATED
+  COMPLETED
 }
 
 // ─── User ────────────────────────────────────────────────────────────────────
@@ -90,11 +118,14 @@ model User {
   updatedAt DateTime @updatedAt
 
   projectMembers ProjectMember[]
-  assignedTasks  Task[]          @relation("AssignedTasks")
-  createdTasks   Task[]          @relation("CreatedTasks")
+  assignedTasks  Task[]           @relation("AssignedTasks")
+  createdTasks   Task[]           @relation("CreatedTasks")
   comments       Comment[]
   attachments    Attachment[]
   activityLogs   ActivityLog[]
+  notifications  Notification[]
+  taughtSubjects Subject[]        @relation("SubjectProfessors")
+  ownedResults   ExpectedResult[] @relation("ResultOwner")
 
   @@map("users")
 }
@@ -110,8 +141,15 @@ model Project {
   methodology ProjectMethodology @default(KANBAN)
   isPublic    Boolean            @default(false)
   isArchived  Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+
+  isInstitutional Boolean @default(false)
+  subjectId       String?
+
+  mode            ProjectMode      @default(CLASSIC)
+  expectedResults ExpectedResult[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   members      ProjectMember[]
   boards       Board[]
@@ -119,6 +157,7 @@ model Project {
   tags         Tag[]
   tasks        Task[]
   activityLogs ActivityLog[]
+  subject      Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
 
   @@map("projects")
 }
@@ -126,15 +165,18 @@ model Project {
 // ─── ProjectMember ───────────────────────────────────────────────────────────
 
 model ProjectMember {
-  id       String      @id @default(cuid())
+  id       String       @id @default(cuid())
   role     ProjectRole
-  joinedAt DateTime    @default(now())
+  status   MemberStatus @default(PENDING)
+  joinedAt DateTime     @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  expectedResults ExpectedResult[] @relation("ResultCollaborators")
 
   @@unique([userId, projectId])
   @@map("project_members")
@@ -229,6 +271,9 @@ model Task {
   comments    Comment[]
   attachments Attachment[]
 
+  expectedResultId String?
+  expectedResult   ExpectedResult? @relation(fields: [expectedResultId], references: [id], onDelete: SetNull)
+
   @@map("tasks")
 }
 
@@ -300,4 +345,84 @@ model ActivityLog {
   @@index([projectId, createdAt(sort: Desc)])
   @@index([entityId])
   @@map("activity_logs")
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────────────
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String // El usuario que recibe la notificación
+  type      NotificationType
+  title     String // Ej: "Nueva invitación de proyecto"
+  message   String? // Ej: "Martín te ha invitado a PROJEIC"
+  isRead    Boolean          @default(false)
+  entityId  String? // ID de referencia (ej: ID del proyecto o tarea)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+// ─── Ramos de la Universidad (EIC) ──────────────────────────────────────────
+model Subject {
+  id     String  @id @default(cuid())
+  name   String
+  code   String?
+  period String
+
+  professors User[]    @relation("SubjectProfessors")
+  projects   Project[] // Relación uno a muchos: Un ramo tiene muchos proyectos
+
+  @@map("subjects")
+}
+
+model ExpectedResult {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      ResultStatus @default(NOT_STARTED)
+  progress    Int          @default(0)
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  ownerId String
+  owner   User   @relation("ResultOwner", fields: [ownerId], references: [id])
+
+  collaborators ProjectMember[] @relation("ResultCollaborators")
+
+  tasks Task[]
+
+  evidences Evidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  history StatusLog[]
+
+  @@map("expected_results")
+}
+
+model Evidence {
+  id               String         @id @default(cuid())
+  url              String? // Link a PR, Figma, Deploy
+  fileKey          String? // Referencia a S3/Cloudinary si suben archivos
+  type             String // "URL", "IMAGE", "PDF"
+  createdAt        DateTime       @default(now())
+  expectedResultId String
+  expectedResult   ExpectedResult @relation(fields: [expectedResultId], references: [id])
+}
+
+model StatusLog {
+  id               String         @id @default(cuid())
+  expectedResultId String
+  result           ExpectedResult @relation(fields: [expectedResultId], references: [id], onDelete: Cascade)
+
+  previousStatus ResultStatus
+  newStatus      ResultStatus
+  reason         String?      @db.Text
+  userId         String
+  createdAt      DateTime     @default(now())
 }
