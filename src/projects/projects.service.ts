@@ -88,6 +88,8 @@ export class ProjectsService {
 
     const newProject = await this.repository.create(data);
 
+    await this.recalculateWipLimits(newProject.id);
+
     await this.prisma.activityLog.create({
       data: {
         projectId: newProject.id,
@@ -355,6 +357,22 @@ export class ProjectsService {
   async remove(id: string): Promise<Project> {
     await this.assertExists(id);
     return this.repository.hardDelete(id);
+  }
+
+  async recalculateWipLimits(projectId: string) {
+    const membersCount = await this.prisma.projectMember.count({
+      where: { projectId, status: 'ACTIVE' },
+    });
+    const calculatedWip = Math.ceil(membersCount * 1.5);
+    await this.prisma.board.updateMany({
+      where: {
+        projectId,
+        name: { in: ['En progreso', 'En revisión', 'In Progress', 'Review'] },
+      },
+      data: { wipLimit: calculatedWip },
+    });
+
+    return calculatedWip;
   }
 
   private async assertExists(id: string): Promise<void> {

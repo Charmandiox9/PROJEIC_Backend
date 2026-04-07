@@ -26,6 +26,7 @@ export class TasksService {
 
         expectedResultId: createTaskInput.expectedResultId,
         boardId: createTaskInput.boardId,
+        sprintId: createTaskInput.sprintId,
         assigneeId: createTaskInput.assigneeId,
 
         dueDate: createTaskInput.dueDate,
@@ -75,6 +76,8 @@ export class TasksService {
       updateData.sprintId = updateTaskInput.sprintId;
     if (updateTaskInput.assigneeId !== undefined)
       updateData.assigneeId = updateTaskInput.assigneeId;
+    if (updateTaskInput.sprintId !== undefined)
+      updateData.sprintId = updateTaskInput.sprintId;
 
     const updatedTask = await this.prisma.task.update({
       where: { id },
@@ -128,6 +131,15 @@ export class TasksService {
     ) {
       metaObj.previousStatus = oldTask.status;
       metaObj.newStatus = updateTaskInput.status;
+      hasChanges = true;
+    }
+
+    if (
+      updateTaskInput.sprintId !== undefined &&
+      updateTaskInput.sprintId !== oldTask.sprintId
+    ) {
+      metaObj.previousSprint = oldTask.sprintId;
+      metaObj.newSprint = updateTaskInput.sprintId;
       hasChanges = true;
     }
 
@@ -187,9 +199,19 @@ export class TasksService {
     return taskToDelete;
   }
 
-  async findAllByProject(projectId: string) {
+  async findAllByProject(projectId: string, sprintId?: string) {
     return this.prisma.task.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        sprintId: sprintId === 'backlog' ? null : sprintId,
+      },
+      orderBy: { position: 'asc' },
+    });
+  }
+
+  async getAllTasksPendingByUserId(userId: string) {
+    return this.prisma.task.findMany({
+      where: { assigneeId: userId, status: { not: TaskStatus.DONE } },
       orderBy: { position: 'asc' },
     });
   }

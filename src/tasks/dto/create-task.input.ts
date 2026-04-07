@@ -54,4 +54,13 @@ export class CreateTaskInput {
   @IsDate()
   @IsOptional()
   dueDate?: Date;
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  sprintId?: string;
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  tags?: string[];
 }

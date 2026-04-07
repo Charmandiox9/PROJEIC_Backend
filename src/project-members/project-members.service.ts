@@ -9,12 +9,14 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AddProjectMemberInput } from './dto/add-member.input';
 import { UpdateProjectMemberInput } from './dto/update-member.input';
 import { ActivityEntity, ActivityAction } from '@prisma/client';
+import { ProjectsService } from 'src/projects/projects.service';
 
 @Injectable()
 export class ProjectMembersService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
   async addMember(input: AddProjectMemberInput, requesterId: string) {
@@ -129,6 +131,8 @@ export class ProjectMembersService {
         },
       });
 
+      await this.projectsService.recalculateWipLimits(projectId);
+
       return activeMember;
     } else {
       await this.prisma.projectMember.delete({
@@ -187,6 +191,8 @@ export class ProjectMembersService {
     });
 
     const isLeaving = requesterId === memberToDelete.userId;
+
+    await this.projectsService.recalculateWipLimits(memberToDelete.projectId);
 
     await this.prisma.activityLog.create({
       data: {

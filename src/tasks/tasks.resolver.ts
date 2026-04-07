@@ -43,12 +43,21 @@ export class TasksResolver {
   }
 
   @Query(() => [Task], { name: 'tasksByProject' })
-  findAllByProject(@Args('projectId') projectId: string) {
-    return this.tasksService.findAllByProject(projectId);
+  findAllByProject(
+    @Args('projectId') projectId: string,
+    @Args('sprintId', { nullable: true }) sprintId?: string,
+  ) {
+    return this.tasksService.findAllByProject(projectId, sprintId);
   }
 
   @Query(() => ProjectMetrics, { name: 'projectMetrics' })
   getMetrics(@Args('projectId') projectId: string) {
     return this.tasksService.getProjectMetrics(projectId);
+  }
+
+  @Query(() => [Task], { name: 'pendingTasksByUserId' })
+  findAllByUserId(@CurrentUser() user: any) {
+    const userId = user.id || user.userId || user.sub;
+    return this.tasksService.getAllTasksPendingByUserId(userId);
   }
 }

@@ -9,5 +9,6 @@ import { BoardsModule } from 'src/boards/boards.module';
 @Module({
   imports: [PrismaModule, NotificationsModule, BoardsModule],
   providers: [ProjectsResolver, ProjectsService, ProjectsRepository],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}
