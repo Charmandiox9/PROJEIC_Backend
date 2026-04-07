@@ -65,6 +65,8 @@ export class ExpectedResultsService {
       reason,
     } = input;
 
+    console.log("User:", userId)
+
     const result = await this.prisma.expectedResult.findUnique({
       where: { id: resultId },
       include: { evidences: true },

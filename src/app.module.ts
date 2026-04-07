@@ -25,6 +25,7 @@ import { ActivityLogsModule } from './activity-logs/activity-logs.module';
 import { BoardsModule } from './boards/boards.module';
 import { ProjectMetricsModule } from './project-metrics/project-metrics.module';
 import { SprintsModule } from './sprints/sprints.module';
+import { StorageModule } from './storage/storage.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -61,6 +62,7 @@ const devProviders =
     BoardsModule,
     ProjectMetricsModule,
     SprintsModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [

@@ -165,6 +165,7 @@ type Mutation {
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
+  getUploadPresignedUrl(contentType: String!, fileName: String!): PresignedUrlResponse!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
   removeBoard(id: String!): Board!
@@ -213,6 +214,11 @@ type PaginatedProjects {
 
   """Total count (ignoring pagination)"""
   total: Int!
+}
+
+type PresignedUrlResponse {
+  fileKey: String!
+  uploadUrl: String!
 }
 
 """Represents a project in the system"""
