@@ -4,9 +4,10 @@ import { ProjectsResolver } from './projects.resolver';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { ProjectsRepository } from './projects.repository';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { BoardsModule } from 'src/boards/boards.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, BoardsModule],
   providers: [ProjectsResolver, ProjectsService, ProjectsRepository],
 })
 export class ProjectsModule {}

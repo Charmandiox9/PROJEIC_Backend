@@ -21,6 +21,7 @@ import { ProjectsFilterInput } from './dto/projects-filter.input';
 import { PaginatedProjects } from './dto/paginated-projects.type';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { BoardsService } from 'src/boards/boards.service';
 
 /**
  * Business-logic layer for Projects.
@@ -37,6 +38,7 @@ export class ProjectsService {
     private readonly repository: ProjectsRepository,
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly boardsService: BoardsService,
   ) {}
 
   // ─── Create ──────────────────────────────────────────────────────────────
@@ -96,6 +98,14 @@ export class ProjectsService {
         meta: { title: newProject.name },
       },
     });
+
+    if (
+      newProject.methodology === ProjectMethodology.KANBAN ||
+      newProject.methodology === ProjectMethodology.SCRUM ||
+      newProject.methodology === ProjectMethodology.SCRUMBAN
+    ) {
+      await this.boardsService.createDefaultBoards(newProject.id, userId);
+    }
 
     return newProject;
   }

@@ -22,6 +22,8 @@ import { ExpectedResultsModule } from './expected-results/expected-results.modul
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { BoardsModule } from './boards/boards.module';
+import { ProjectMetricsModule } from './project-metrics/project-metrics.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -55,6 +57,8 @@ const devProviders =
     TasksModule,
     UsersModule,
     ActivityLogsModule,
+    BoardsModule,
+    ProjectMetricsModule,
   ],
   controllers: [AppController],
   providers: [
