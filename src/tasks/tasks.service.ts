@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskInput } from './dto/create-task.input';
 import { UpdateTaskInput } from './dto/update-task.input';
@@ -79,6 +83,31 @@ export class TasksService {
     if (updateTaskInput.sprintId !== undefined)
       updateData.sprintId = updateTaskInput.sprintId;
 
+    if (
+      updateTaskInput.boardId !== undefined &&
+      updateTaskInput.boardId !== null &&
+      updateTaskInput.boardId !== oldTask.boardId
+    ) {
+      const targetBoard = await this.prisma.board.findUnique({
+        where: { id: updateTaskInput.boardId },
+        include: {
+          _count: { select: { tasks: true } },
+        },
+      });
+
+      if (!targetBoard)
+        throw new NotFoundException('Tablero destino no encontrado');
+
+      if (
+        targetBoard.wipLimit !== null &&
+        targetBoard._count.tasks >= targetBoard.wipLimit
+      ) {
+        throw new BadRequestException(
+          `Límite WIP excedido: La columna "${targetBoard.name}" solo permite un máximo de ${targetBoard.wipLimit} tareas simultáneas.`,
+        );
+      }
+    }
+
     const updatedTask = await this.prisma.task.update({
       where: { id },
       data: updateData,
@@ -89,6 +118,7 @@ export class TasksService {
     const changes: Record<string, { from: any; to: any }> = {};
     let hasChanges = false;
     let wasAssignedToSomeoneElse = false;
+    let wasMoved = false;
 
     if (
       updateTaskInput.title !== undefined &&
@@ -144,6 +174,16 @@ export class TasksService {
     }
 
     if (
+      updateTaskInput.boardId !== undefined &&
+      updateTaskInput.boardId !== oldTask.boardId
+    ) {
+      metaObj.previousBoard = oldTask.boardId;
+      metaObj.newBoard = updateTaskInput.boardId;
+      hasChanges = true;
+      wasMoved = true;
+    }
+
+    if (
       updateTaskInput.assigneeId !== undefined &&
       updateTaskInput.assigneeId !== oldTask.assigneeId
     ) {
@@ -164,7 +204,9 @@ export class TasksService {
         data: {
           projectId: updatedTask.projectId,
           userId: userId,
-          action: wasAssignedToSomeoneElse
+          action: wasMoved
+            ? ActivityAction.MOVED
+            : wasAssignedToSomeoneElse
             ? ActivityAction.ASSIGNED
             : ActivityAction.UPDATED,
           entity: ActivityEntity.TASK,

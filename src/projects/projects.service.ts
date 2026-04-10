@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import {
   Project,
@@ -21,6 +23,7 @@ import { ProjectsFilterInput } from './dto/projects-filter.input';
 import { PaginatedProjects } from './dto/paginated-projects.type';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { ProjectMembersService } from 'src/project-members/project-members.service';
 import { BoardsService } from 'src/boards/boards.service';
 
 /**
@@ -39,6 +42,8 @@ export class ProjectsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly boardsService: BoardsService,
+    @Inject(forwardRef(() => ProjectMembersService))
+    private readonly projectMembersService: ProjectMembersService,
   ) {}
 
   // ─── Create ──────────────────────────────────────────────────────────────
@@ -55,14 +60,6 @@ export class ProjectsService {
         status: MemberStatus.ACTIVE,
       },
     ];
-
-    if (input.isInstitutional && input.professorId) {
-      initialMembers.push({
-        userId: input.professorId,
-        role: ProjectRole.SUPERVISOR,
-        status: MemberStatus.ACTIVE,
-      });
-    }
 
     const data = {
       name: input.name,
@@ -88,12 +85,10 @@ export class ProjectsService {
 
     const newProject = await this.repository.create(data);
 
-    await this.recalculateWipLimits(newProject.id);
-
     await this.prisma.activityLog.create({
       data: {
         projectId: newProject.id,
-        userId: userId, // Quien lo creó
+        userId: userId,
         action: ActivityAction.CREATED,
         entity: ActivityEntity.PROJECT,
         entityId: newProject.id,
@@ -107,6 +102,33 @@ export class ProjectsService {
       newProject.methodology === ProjectMethodology.SCRUMBAN
     ) {
       await this.boardsService.createDefaultBoards(newProject.id, userId);
+    }
+
+    await this.recalculateWipLimits(newProject.id);
+
+    if (
+      input.isInstitutional &&
+      input.professorId &&
+      input.professorId !== userId
+    ) {
+      // A. Buscamos el correo del profesor usando su ID
+      const professor = await this.prisma.user.findUnique({
+        where: { id: input.professorId },
+        select: { email: true },
+      });
+
+      if (professor) {
+        // B. Llamamos a tu método addMember.
+        // Como el proyecto ya se creó y el estudiante es LEADER, pasará la validación.
+        await this.projectMembersService.addMember(
+          {
+            projectId: newProject.id,
+            email: professor.email,
+            role: ProjectRole.SUPERVISOR,
+          },
+          userId, // El estudiante que está creando el proyecto es quien hace la invitación
+        );
+      }
     }
 
     return newProject;

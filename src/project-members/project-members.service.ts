@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -16,6 +18,7 @@ export class ProjectMembersService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    @Inject(forwardRef(() => ProjectsService))
     private readonly projectsService: ProjectsService,
   ) {}
 
@@ -101,6 +104,7 @@ export class ProjectMembersService {
       where: { userId_projectId: { userId, projectId } },
     });
 
+    // DESPUES HAY QUE HACER QUE SE ELIMINE 7 DIAS DESPUES DE SER MARCADA COMO READ
     await this.prisma.notification.deleteMany({
       where: { userId, type: 'PROJECT_INVITATION', entityId: projectId },
     });

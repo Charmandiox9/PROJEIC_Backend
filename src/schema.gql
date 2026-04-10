@@ -9,6 +9,7 @@ type ActivityLog {
   entityId: String!
   id: ID!
   meta: String
+  project: ProjectEntity
   projectId: String!
   user: User!
 }
@@ -357,6 +358,8 @@ type Query {
   me: User!
   myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
   myProjects(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
+  myRecentFeed: [ActivityLog!]!
+  myWeeklyActivityPoints: Int!
   pendingTasksByUserId: [Task!]!
   projectMetrics(projectId: String!): ProjectMetrics!
   sprintBurndown(sprintId: String!): [BurndownDataPoint!]!
