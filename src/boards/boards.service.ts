@@ -13,7 +13,8 @@ export class BoardsService {
       { name: 'Backlog', position: 0, color: '#9CA3AF' },
       { name: 'To Do', position: 1, color: '#3B82F6' },
       { name: 'In Progress', position: 2, color: '#F59E0B' },
-      { name: 'Done', position: 3, color: '#10B981' },
+      { name: 'In Review', position: 3, color: '#8B5CF6' },
+      { name: 'Done', position: 4, color: '#10B981' },
     ];
 
     await this.prisma.board.createMany({
