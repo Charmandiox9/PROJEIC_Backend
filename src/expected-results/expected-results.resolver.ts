@@ -4,7 +4,10 @@ import { ExpectedResultEntity } from './entities/expected-result.entity';
 import { CreateExpectedResultInput } from './dto/create-expected-result.input';
 import { UpdateResultStatusInput } from './dto/update-result-status.input';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 
+@UseGuards(GqlAuthGuard)
 @Resolver(() => ExpectedResultEntity)
 export class ExpectedResultsResolver {
   constructor(

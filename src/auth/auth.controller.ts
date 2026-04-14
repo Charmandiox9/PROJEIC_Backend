@@ -19,7 +19,25 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const jwt = await this.authService.login(req.user);
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/projeic/auth/success?token=${jwt.accessToken}`);
+
+    let frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    // LOG DE DEBUG PARA RAILWAY
+    console.log('DEBUG BACKEND - FRONTEND_URL de ConfigService:', frontendUrl);
+    console.log(
+      'DEBUG BACKEND - RAILWAY_ENVIRONMENT:',
+      process.env.RAILWAY_ENVIRONMENT,
+    );
+
+    if (!frontendUrl && process.env.RAILWAY_ENVIRONMENT) {
+      frontendUrl = 'https://projeicfrontend-production.up.railway.app';
+    } else if (!frontendUrl) {
+      frontendUrl = 'http://localhost:3000';
+    }
+
+    const redirectPath = `${frontendUrl}/projeic/auth/success?token=${jwt.accessToken}`;
+    console.log('DEBUG BACKEND - Redirigiendo a:', redirectPath);
+
+    res.redirect(redirectPath);
   }
 }

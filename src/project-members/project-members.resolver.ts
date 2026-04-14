@@ -6,13 +6,17 @@ import { UpdateProjectMemberInput } from './dto/update-member.input';
 import { UseGuards } from '@nestjs/common';
 import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ProjectRole } from '@prisma/client';
+import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
 
-@UseGuards(GqlAuthGuard)
+@UseGuards(GqlAuthGuard, ProjectRoleGuard)
 @Resolver(() => ProjectMemberEntity)
 export class ProjectMembersResolver {
   constructor(private readonly projectMembersService: ProjectMembersService) {}
 
   @Mutation(() => ProjectMemberEntity)
+  @Roles(ProjectRole.LEADER)
   addProjectMember(
     @Args('input') input: AddProjectMemberInput,
     @CurrentUser() user: any,
@@ -34,6 +38,7 @@ export class ProjectMembersResolver {
     );
   }
 
+  @Roles(ProjectRole.LEADER)
   @Mutation(() => ProjectMemberEntity)
   updateProjectMemberRole(
     @Args('input') input: UpdateProjectMemberInput,
@@ -42,6 +47,7 @@ export class ProjectMembersResolver {
     return this.projectMembersService.updateRole(input, user.userId);
   }
 
+  @Roles(ProjectRole.LEADER)
   @Mutation(() => Boolean)
   removeProjectMember(
     @Args('memberId', { type: () => ID }) memberId: string,

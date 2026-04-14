@@ -3,18 +3,23 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AddProjectMemberInput } from './dto/add-member.input';
 import { UpdateProjectMemberInput } from './dto/update-member.input';
 import { ActivityEntity, ActivityAction } from '@prisma/client';
+import { ProjectsService } from 'src/projects/projects.service';
 
 @Injectable()
 export class ProjectMembersService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    @Inject(forwardRef(() => ProjectsService))
+    private readonly projectsService: ProjectsService,
   ) {}
 
   async addMember(input: AddProjectMemberInput, requesterId: string) {
@@ -99,6 +104,7 @@ export class ProjectMembersService {
       where: { userId_projectId: { userId, projectId } },
     });
 
+    // DESPUES HAY QUE HACER QUE SE ELIMINE 7 DIAS DESPUES DE SER MARCADA COMO READ
     await this.prisma.notification.deleteMany({
       where: { userId, type: 'PROJECT_INVITATION', entityId: projectId },
     });
@@ -128,6 +134,8 @@ export class ProjectMembersService {
           meta: { role: invitation.role },
         },
       });
+
+      await this.projectsService.recalculateWipLimits(projectId);
 
       return activeMember;
     } else {
@@ -187,6 +195,8 @@ export class ProjectMembersService {
     });
 
     const isLeaving = requesterId === memberToDelete.userId;
+
+    await this.projectsService.recalculateWipLimits(memberToDelete.projectId);
 
     await this.prisma.activityLog.create({
       data: {

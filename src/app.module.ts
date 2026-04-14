@@ -22,6 +22,12 @@ import { ExpectedResultsModule } from './expected-results/expected-results.modul
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { BoardsModule } from './boards/boards.module';
+import { ProjectMetricsModule } from './project-metrics/project-metrics.module';
+import { SprintsModule } from './sprints/sprints.module';
+import { StorageModule } from './storage/storage.module';
+import { S3Module } from './s3/s3.module';
+import { EvidenceModule } from './evidence/evidence.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -55,6 +61,12 @@ const devProviders =
     TasksModule,
     UsersModule,
     ActivityLogsModule,
+    BoardsModule,
+    ProjectMetricsModule,
+    SprintsModule,
+    StorageModule,
+    S3Module,
+    EvidenceModule,
   ],
   controllers: [AppController],
   providers: [

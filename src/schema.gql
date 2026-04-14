@@ -9,6 +9,7 @@ type ActivityLog {
   entityId: String!
   id: ID!
   meta: String
+  project: ProjectEntity
   projectId: String!
   user: User!
 }
@@ -18,6 +19,37 @@ input AddProjectMemberInput {
   email: String!
   projectId: ID!
   role: ProjectRole!
+}
+
+type Board {
+  color: String
+  id: ID!
+  name: String!
+  position: Int!
+  projectId: String!
+  wipLimit: Int
+}
+
+type BurndownDataPoint {
+  date: String!
+  dayLabel: String!
+  ideal: Float
+  real: Float
+}
+
+type ColumnMetric {
+  boardId: String!
+  color: String
+  count: Int!
+  name: String!
+}
+
+input CreateBoardInput {
+  color: String
+  name: String!
+  position: Int
+  projectId: String!
+  wipLimit: Int
 }
 
 input CreateExpectedResultInput {
@@ -52,6 +84,14 @@ input CreateProjectInput {
   subjectId: String
 }
 
+input CreateSprintInput {
+  endDate: DateTime
+  goal: String
+  name: String!
+  projectId: String!
+  startDate: DateTime
+}
+
 input CreateSubjectInput {
   code: String
   name: String!
@@ -62,9 +102,16 @@ input CreateSubjectInput {
 }
 
 input CreateTaskInput {
+  assigneeId: String
+  boardId: String
   creatorId: String!
+  description: String
+  dueDate: DateTime
   expectedResultId: String
+  priority: String
   projectId: String!
+  sprintId: String
+  tags: [String!]
   title: String!
 }
 
@@ -108,19 +155,27 @@ type Mutation {
 
   """Soft-delete a project (sets isArchived = true)"""
   archiveProject(id: ID!): ProjectEntity!
+  completeSprint(id: String!): Sprint!
+  createBoard(createBoardInput: CreateBoardInput!): Board!
+  createDefaultBoards(projectId: String!): [Board!]!
   createExpectedResult(input: CreateExpectedResultInput!): ExpectedResult!
   createProject(input: CreateProjectInput!): ProjectEntity!
+  createSprint(input: CreateSprintInput!): Sprint!
   createSubject(input: CreateSubjectInput!): SubjectEntity!
   createTask(createTaskInput: CreateTaskInput!): Task!
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
+  getUploadPresignedUrl(contentType: String!, fileName: String!): PresignedUrlResponse!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
+  removeBoard(id: String!): Board!
   removeProjectMember(memberId: ID!): Boolean!
   removeSubject(id: String!): SubjectEntity!
   removeTask(id: String!): Task!
   respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
+  startSprint(id: String!, projectId: String!): Sprint!
+  updateBoard(updateBoardInput: UpdateBoardInput!): Board!
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
   updateResultStatus(input: UpdateResultStatusInput!): ExpectedResult!
@@ -160,6 +215,11 @@ type PaginatedProjects {
 
   """Total count (ignoring pagination)"""
   total: Int!
+}
+
+type PresignedUrlResponse {
+  fileKey: String!
+  uploadUrl: String!
 }
 
 """Represents a project in the system"""
@@ -221,6 +281,16 @@ enum ProjectMethodology {
   SCRUMBAN
 }
 
+type ProjectMetrics {
+  activityLast7Days: Int!
+  completedTasks: Int!
+  inReviewTasks: Int!
+  overdueTasksCount: Int!
+  overdueTasksList: [Task!]!
+  tasksByColumn: [ColumnMetric!]!
+  totalTasks: Int!
+}
+
 """Modo de gestión del proyecto (Clásico o Híbrido)"""
 enum ProjectMode {
   CLASSIC
@@ -275,6 +345,7 @@ type PublicUser {
 
 type Query {
   activityLogsByProject(projectId: String!): [ActivityLog!]!
+  boardsByProject(projectId: String!): [Board!]!
   countExternalProfessorsRegistered: Int!
   countProfessorsRegistered: Int!
   countSemesters: Int!
@@ -287,8 +358,15 @@ type Query {
   me: User!
   myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
   myProjects(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
+  myRecentFeed: [ActivityLog!]!
+  myWeeklyActivityPoints: Int!
+  pendingTasksByUserId: [Task!]!
+  projectMetrics(projectId: String!): ProjectMetrics!
+  sprintBurndown(sprintId: String!): [BurndownDataPoint!]!
+  sprintsByProject(projectId: String!): [Sprint!]!
   subject(id: String!): SubjectEntity!
   subjects: [SubjectEntity!]!
+  tasksByProject(projectId: String!, sprintId: String): [Task!]!
 }
 
 """Estado de un Resultado Esperado"""
@@ -298,6 +376,16 @@ enum ResultStatus {
   NOT_STARTED
   STARTED
   VALIDATED
+}
+
+type Sprint {
+  endDate: DateTime
+  goal: String
+  id: ID!
+  name: String!
+  projectId: String!
+  startDate: DateTime
+  status: String!
 }
 
 type StatusLog {
@@ -317,14 +405,30 @@ type SubjectEntity {
 }
 
 type Task {
+  assigneeId: String
+  boardId: String
   createdAt: DateTime!
   creatorId: String!
   description: String
+  dueDate: DateTime
   expectedResultId: String
   id: ID!
+  parentId: String
+  position: Int!
+  priority: String!
   projectId: String!
+  sprintId: String
   status: String!
   title: String!
+  updatedAt: DateTime!
+}
+
+input UpdateBoardInput {
+  color: String
+  id: ID!
+  name: String
+  position: Int
+  wipLimit: Int
 }
 
 """Data to update an existing project (all fields optional)"""
@@ -374,7 +478,14 @@ input UpdateSubjectInput {
 }
 
 input UpdateTaskInput {
+  assigneeId: String
+  boardId: String
+  description: String
+  dueDate: DateTime
   id: ID!
+  position: Int
+  priority: String
+  sprintId: String
   status: String
   title: String
 }
