@@ -20,14 +20,17 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const jwt = await this.authService.login(req.user);
 
-    let frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    // Leemos de ConfigService y como fallback directo de process.env
+    // Usamos .trim() para evitar saltos de línea o espacios accidentales (ej: Railway)
+    let frontendUrl = (
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      ''
+    ).trim();
 
     // LOG DE DEBUG PARA RAILWAY
-    console.log('DEBUG BACKEND - FRONTEND_URL de ConfigService:', frontendUrl);
-    console.log(
-      'DEBUG BACKEND - RAILWAY_ENVIRONMENT:',
-      process.env.RAILWAY_ENVIRONMENT,
-    );
+    console.log('DEBUG BACKEND - FRONTEND_URL:', frontendUrl);
+    console.log('DEBUG BACKEND - RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT);
 
     if (!frontendUrl && process.env.RAILWAY_ENVIRONMENT) {
       frontendUrl = 'https://projeicfrontend-production.up.railway.app';

@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: (process.env.FRONTEND_URL ?? 'http://localhost:3000').trim(),
   });
 
   const uploadPath = join(process.cwd(), 'uploads');
