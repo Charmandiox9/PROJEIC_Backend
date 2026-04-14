@@ -29,12 +29,11 @@ export class AuthController {
     ).trim();
 
     // LOG DE DEBUG PARA RAILWAY
-    console.log('DEBUG BACKEND - FRONTEND_URL:', frontendUrl);
+    console.log('DEBUG BACKEND - FRONTEND_URL desde config:', frontendUrl);
     console.log('DEBUG BACKEND - RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT);
 
-    if (!frontendUrl && process.env.RAILWAY_ENVIRONMENT) {
-      frontendUrl = 'https://projeicfrontend-production.up.railway.app';
-    } else if (!frontendUrl) {
+    if (!frontendUrl) {
+      // Fallback a localhost en desarrollo local
       frontendUrl = 'http://localhost:3000';
     }
 
