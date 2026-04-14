@@ -21,12 +21,12 @@ export class AuthController {
     const jwt = await this.authService.login(req.user);
 
     // Leemos de ConfigService y como fallback directo de process.env
-    // Usamos .trim() para evitar saltos de línea o espacios accidentales (ej: Railway)
+    // Usamos .trim() + reemplazamos comillas por si Railway las incluye literalmente
     let frontendUrl = (
       this.configService.get<string>('FRONTEND_URL') ||
       process.env.FRONTEND_URL ||
       ''
-    ).trim();
+    ).trim().replace(/^["']|["']$/g, '');
 
     // LOG DE DEBUG PARA RAILWAY
     console.log('DEBUG BACKEND - FRONTEND_URL desde config:', frontendUrl);
