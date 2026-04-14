@@ -10,6 +10,10 @@ import { ProjectsFilterInput } from './dto/projects-filter.input';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { GqlAuthGuard } from 'src/auth/guards/gql-auth.guard';
 import { UseGuards } from '@nestjs/common/decorators/core/use-guards.decorator';
+import { InternalUserGuard } from 'src/auth/guards/internal-user.guard';
+import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ProjectRole } from '@prisma/client';
 
 /** Type guard que reemplaza los import() inline, evitando el error de isolatedModules */
 function isFieldNode(node: SelectionNode): node is FieldNode {
@@ -34,9 +38,10 @@ function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
     .some((f) => f.name.value === 'members');
 }
 
+@UseGuards(GqlAuthGuard, ProjectRoleGuard)
 @Resolver(() => ProjectEntity)
 export class ProjectsResolver {
-  constructor(private readonly projectsService: ProjectsService) { }
+  constructor(private readonly projectsService: ProjectsService) {}
 
   // ─── Queries ─────────────────────────────────────────────────────────────
 
@@ -80,7 +85,7 @@ export class ProjectsResolver {
 
   // ─── Mutations ───────────────────────────────────────────────────────────
 
-  @UseGuards(GqlAuthGuard)
+  @UseGuards(InternalUserGuard)
   @Mutation(() => ProjectEntity, { name: 'createProject' })
   create(
     @Args('input') input: CreateProjectInput,
@@ -92,6 +97,7 @@ export class ProjectsResolver {
   }
 
   @UseGuards(GqlAuthGuard)
+  @Roles(ProjectRole.LEADER)
   @Mutation(() => ProjectEntity)
   updateProject(
     @Args('input') input: UpdateProjectInput,

@@ -2,11 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { CreateSubjectInput } from './dto/create-subject.input';
 import { UpdateSubjectInput } from './dto/update-subject.input';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AdminGuard } from '../auth/guards/admin.guard';
+import { UseGuards } from '@nestjs/common';
+import { GqlAuthGuard } from '../auth/guards/gql-auth.guard';
 
 @Injectable()
 export class SubjectsService {
   constructor(private prisma: PrismaService) {}
 
+  @UseGuards(GqlAuthGuard, AdminGuard)
   async create(input: CreateSubjectInput) {
     return this.prisma.subject.create({
       data: {
@@ -35,6 +39,7 @@ export class SubjectsService {
     });
   }
 
+  @UseGuards(GqlAuthGuard, AdminGuard)
   async update(id: string, updateSubjectInput: UpdateSubjectInput) {
     return this.prisma.subject.update({
       where: { id },
@@ -54,6 +59,7 @@ export class SubjectsService {
     });
   }
 
+  @UseGuards(GqlAuthGuard, AdminGuard)
   async remove(id: string) {
     return this.prisma.subject.delete({
       where: { id },

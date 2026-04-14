@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskInput } from './dto/create-task.input';
@@ -60,6 +61,63 @@ export class TasksService {
     });
 
     if (!oldTask) throw new NotFoundException('Tarea no encontrada');
+
+    const membership = await this.prisma.projectMember.findUnique({
+      where: { userId_projectId: { userId, projectId: oldTask.projectId } },
+    });
+
+    if (!membership || membership.status !== 'ACTIVE') {
+      throw new ForbiddenException('No tienes acceso activo a este proyecto.');
+    }
+
+    const { role } = membership;
+
+    if (role === 'EXTERNAL') {
+      throw new ForbiddenException(
+        'Los colaboradores externos no pueden editar ni mover tareas.',
+      );
+    }
+
+    if (role === 'SUPERVISOR') {
+      const isEditingDetails =
+        updateTaskInput.title !== undefined ||
+        updateTaskInput.description !== undefined ||
+        updateTaskInput.priority !== undefined ||
+        updateTaskInput.dueDate !== undefined;
+
+      if (isEditingDetails) {
+        throw new ForbiddenException(
+          'Como supervisor, solo puedes revisar y cambiar el estado de las tareas, no editar su contenido.',
+        );
+      }
+    }
+
+    if (role === 'STUDENT') {
+      if (
+        oldTask.assigneeId !== userId &&
+        updateTaskInput.assigneeId !== userId
+      ) {
+        throw new ForbiddenException(
+          'Solo puedes actualizar o mover las tareas que tienes asignadas.',
+        );
+      }
+
+      if (updateTaskInput.status !== undefined) {
+        if (updateTaskInput.status === 'DONE') {
+          throw new ForbiddenException(
+            'Solo el PM (Líder) o Supervisor puede aprobar una tarea para pasarla a DONE.',
+          );
+        }
+        if (
+          updateTaskInput.status === 'BACKLOG' ||
+          updateTaskInput.status === 'CANCELLED'
+        ) {
+          throw new ForbiddenException(
+            'No tienes permisos para cancelar tareas ni retrocederlas al Backlog.',
+          );
+        }
+      }
+    }
 
     const updateData: any = {};
     if (updateTaskInput.title !== undefined)
@@ -207,8 +265,8 @@ export class TasksService {
           action: wasMoved
             ? ActivityAction.MOVED
             : wasAssignedToSomeoneElse
-            ? ActivityAction.ASSIGNED
-            : ActivityAction.UPDATED,
+              ? ActivityAction.ASSIGNED
+              : ActivityAction.UPDATED,
           entity: ActivityEntity.TASK,
           entityId: updatedTask.id,
           meta: metaObj,

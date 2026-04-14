@@ -7,13 +7,17 @@ import { CreateTaskInput } from './dto/create-task.input';
 import { UpdateTaskInput } from './dto/update-task.input';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ProjectMetrics } from '../project-metrics/entities/project-metric.entity';
+import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { ProjectRole } from '@prisma/client';
 
 @Resolver(() => Task)
-@UseGuards(GqlAuthGuard)
+@UseGuards(GqlAuthGuard, ProjectRoleGuard)
 export class TasksResolver {
   constructor(private readonly tasksService: TasksService) {}
 
   @Mutation(() => Task)
+  @Roles(ProjectRole.LEADER)
   createTask(
     @Args('createTaskInput') createTaskInput: CreateTaskInput,
     @CurrentUser() user: any,
@@ -36,6 +40,7 @@ export class TasksResolver {
     );
   }
 
+  @Roles(ProjectRole.LEADER)
   @Mutation(() => Task)
   removeTask(@Args('id') id: string, @CurrentUser() user: any) {
     const userId = user.id || user.userId || user.sub;
