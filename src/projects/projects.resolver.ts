@@ -38,16 +38,16 @@ function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
     .some((f) => f.name.value === 'members');
 }
 
-@UseGuards(GqlAuthGuard, ProjectRoleGuard)
 @Resolver(() => ProjectEntity)
 export class ProjectsResolver {
   constructor(private readonly projectsService: ProjectsService) {}
 
   // ─── Queries ─────────────────────────────────────────────────────────────
 
+  // pública: no requiere autenticación
   @Query(() => PaginatedProjects)
   findAll(
-    @CurrentUser() user: any, // 1. Inyectamos el usuario
+    @CurrentUser() user: any,
     @Args('filter', { nullable: true }) filter?: ProjectsFilterInput,
     @Args('includeMembers', { type: () => Boolean, nullable: true })
     includeMembers?: boolean,
@@ -75,10 +75,11 @@ export class ProjectsResolver {
     return this.projectsService.findMyProjects(userId, filter, includeMembers);
   }
 
+  // pública: no requiere autenticación
   @Query(() => ProjectEntity)
   findOne(
     @Args('id', { type: () => String }) id: string,
-    @CurrentUser() user: any, // 1. Inyectamos el usuario
+    @CurrentUser() user: any,
   ) {
     return this.projectsService.findOne(id, user?.sub);
   }
