@@ -53,6 +53,11 @@ export class CreateTaskInput {
   @Field({ nullable: true })
   @IsDate()
   @IsOptional()
+  startDate?: Date;
+
+  @Field({ nullable: true })
+  @IsDate()
+  @IsOptional()
   dueDate?: Date;
 
   @Field({ nullable: true })

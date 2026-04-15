@@ -21,6 +21,9 @@ export class Task {
   position: number;
 
   @Field({ nullable: true })
+  startDate?: Date;
+
+  @Field({ nullable: true })
   dueDate?: Date;
 
   @Field()

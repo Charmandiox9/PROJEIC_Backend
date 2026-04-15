@@ -34,6 +34,7 @@ export class TasksService {
         sprintId: createTaskInput.sprintId,
         assigneeId: createTaskInput.assigneeId,
 
+        startDate: createTaskInput.startDate,
         dueDate: createTaskInput.dueDate,
 
         status: initialStatus,
@@ -83,6 +84,7 @@ export class TasksService {
         updateTaskInput.title !== undefined ||
         updateTaskInput.description !== undefined ||
         updateTaskInput.priority !== undefined ||
+        updateTaskInput.startDate !== undefined ||
         updateTaskInput.dueDate !== undefined;
 
       if (isEditingDetails) {
@@ -130,6 +132,8 @@ export class TasksService {
       updateData.priority = updateTaskInput.priority as TaskPriority;
     if (updateTaskInput.position !== undefined)
       updateData.position = updateTaskInput.position;
+    if (updateTaskInput.startDate !== undefined)
+      updateData.startDate = updateTaskInput.startDate;
     if (updateTaskInput.dueDate !== undefined)
       updateData.dueDate = updateTaskInput.dueDate;
     if (updateTaskInput.boardId !== undefined)
@@ -203,6 +207,13 @@ export class TasksService {
         from: oldTask.priority,
         to: updateTaskInput.priority,
       };
+      hasChanges = true;
+    }
+    if (
+      updateTaskInput.startDate !== undefined &&
+      updateTaskInput.startDate !== oldTask.startDate
+    ) {
+      changes.startDate = { from: oldTask.startDate, to: updateTaskInput.startDate };
       hasChanges = true;
     }
     if (

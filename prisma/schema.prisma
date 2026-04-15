@@ -244,6 +244,7 @@ model Task {
   status      TaskStatus   @default(BACKLOG)
   priority    TaskPriority @default(MEDIUM)
   position    Int          @default(0)
+  startDate   DateTime?
   dueDate     DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
