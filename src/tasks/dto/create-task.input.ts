@@ -7,6 +7,7 @@ import {
   IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TaskStatus, TaskPriority } from '@prisma/client';
 
 @InputType()
 export class CreateTaskInput {

@@ -12,17 +12,24 @@ import {
   TaskPriority,
   ActivityAction,
   ActivityEntity,
+  NotificationType,
 } from '@prisma/client';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(createTaskInput: CreateTaskInput) {
     const initialStatus = createTaskInput.expectedResultId ? 'TODO' : 'BACKLOG';
+    const { tags, ...taskData } = createTaskInput;
 
     const newTask = await this.prisma.task.create({
       data: {
+        ...taskData,
         title: createTaskInput.title,
         projectId: createTaskInput.projectId,
         creatorId: createTaskInput.creatorId,
@@ -41,6 +48,10 @@ export class TasksService {
       },
     });
 
+    if (tags && tags.length > 0) {
+      await this.handleTaskTags(newTask.id, createTaskInput.projectId, tags);
+    }
+
     await this.prisma.activityLog.create({
       data: {
         projectId: newTask.projectId,
@@ -52,10 +63,24 @@ export class TasksService {
       },
     });
 
-    return newTask;
+    const finalTask = await this.prisma.task.findUnique({
+      where: { id: newTask.id },
+      include: {
+        tags: { include: { tag: true } },
+      },
+    });
+
+    if (!finalTask) return null;
+
+    return {
+      ...finalTask,
+      tags: finalTask.tags.map((tt) => tt.tag.name),
+    };
   }
 
   async update(id: string, updateTaskInput: UpdateTaskInput, userId: string) {
+    const { tags, ...taskData } = updateTaskInput;
+
     const oldTask = await this.prisma.task.findUnique({
       where: { id },
       include: { assignee: { select: { name: true } } },
@@ -81,11 +106,11 @@ export class TasksService {
 
     if (role === 'SUPERVISOR') {
       const isEditingDetails =
-        updateTaskInput.title !== undefined ||
-        updateTaskInput.description !== undefined ||
-        updateTaskInput.priority !== undefined ||
-        updateTaskInput.startDate !== undefined ||
-        updateTaskInput.dueDate !== undefined;
+        taskData.title !== undefined ||
+        taskData.description !== undefined ||
+        taskData.priority !== undefined ||
+        taskData.startDate !== undefined ||
+        taskData.dueDate !== undefined;
 
       if (isEditingDetails) {
         throw new ForbiddenException(
@@ -95,25 +120,19 @@ export class TasksService {
     }
 
     if (role === 'STUDENT') {
-      if (
-        oldTask.assigneeId !== userId &&
-        updateTaskInput.assigneeId !== userId
-      ) {
+      if (oldTask.assigneeId !== userId && taskData.assigneeId !== userId) {
         throw new ForbiddenException(
           'Solo puedes actualizar o mover las tareas que tienes asignadas.',
         );
       }
 
-      if (updateTaskInput.status !== undefined) {
-        if (updateTaskInput.status === 'DONE') {
+      if (taskData.status !== undefined) {
+        if (taskData.status === 'DONE') {
           throw new ForbiddenException(
             'Solo el PM (Líder) o Supervisor puede aprobar una tarea para pasarla a DONE.',
           );
         }
-        if (
-          updateTaskInput.status === 'BACKLOG' ||
-          updateTaskInput.status === 'CANCELLED'
-        ) {
+        if (taskData.status === 'BACKLOG' || taskData.status === 'CANCELLED') {
           throw new ForbiddenException(
             'No tienes permisos para cancelar tareas ni retrocederlas al Backlog.',
           );
@@ -122,39 +141,34 @@ export class TasksService {
     }
 
     const updateData: any = {};
-    if (updateTaskInput.title !== undefined)
-      updateData.title = updateTaskInput.title;
-    if (updateTaskInput.description !== undefined)
-      updateData.description = updateTaskInput.description;
-    if (updateTaskInput.status !== undefined)
-      updateData.status = updateTaskInput.status as TaskStatus;
-    if (updateTaskInput.priority !== undefined)
-      updateData.priority = updateTaskInput.priority as TaskPriority;
-    if (updateTaskInput.position !== undefined)
-      updateData.position = updateTaskInput.position;
-    if (updateTaskInput.startDate !== undefined)
-      updateData.startDate = updateTaskInput.startDate;
-    if (updateTaskInput.dueDate !== undefined)
-      updateData.dueDate = updateTaskInput.dueDate;
-    if (updateTaskInput.boardId !== undefined)
-      updateData.boardId = updateTaskInput.boardId;
-    if (updateTaskInput.sprintId !== undefined)
-      updateData.sprintId = updateTaskInput.sprintId;
-    if (updateTaskInput.assigneeId !== undefined)
-      updateData.assigneeId = updateTaskInput.assigneeId;
-    if (updateTaskInput.sprintId !== undefined)
-      updateData.sprintId = updateTaskInput.sprintId;
+
+    if (taskData.title !== undefined) updateData.title = taskData.title;
+    if (taskData.description !== undefined)
+      updateData.description = taskData.description;
+    if (taskData.status !== undefined)
+      updateData.status = taskData.status as TaskStatus;
+    if (taskData.priority !== undefined)
+      updateData.priority = taskData.priority as TaskPriority;
+    if (taskData.position !== undefined)
+      updateData.position = taskData.position;
+    if (taskData.startDate !== undefined)
+      updateData.startDate = taskData.startDate;
+    if (taskData.dueDate !== undefined) updateData.dueDate = taskData.dueDate;
+
+    if (taskData.boardId !== undefined) updateData.boardId = taskData.boardId;
+    if (taskData.sprintId !== undefined)
+      updateData.sprintId = taskData.sprintId;
+    if (taskData.assigneeId !== undefined)
+      updateData.assigneeId = taskData.assigneeId;
 
     if (
-      updateTaskInput.boardId !== undefined &&
-      updateTaskInput.boardId !== null &&
-      updateTaskInput.boardId !== oldTask.boardId
+      taskData.boardId !== undefined &&
+      taskData.boardId !== null &&
+      taskData.boardId !== oldTask.boardId
     ) {
       const targetBoard = await this.prisma.board.findUnique({
-        where: { id: updateTaskInput.boardId },
-        include: {
-          _count: { select: { tasks: true } },
-        },
+        where: { id: taskData.boardId },
+        include: { _count: { select: { tasks: true } } },
       });
 
       if (!targetBoard)
@@ -176,85 +190,80 @@ export class TasksService {
       include: { assignee: { select: { name: true } } },
     });
 
+    if (tags !== undefined) {
+      await this.handleTaskTags(id, oldTask.projectId, tags);
+    }
+
     const metaObj: any = { title: updatedTask.title };
     const changes: Record<string, { from: any; to: any }> = {};
     let hasChanges = false;
     let wasAssignedToSomeoneElse = false;
     let wasMoved = false;
 
-    if (
-      updateTaskInput.title !== undefined &&
-      updateTaskInput.title !== oldTask.title
-    ) {
-      changes.title = { from: oldTask.title, to: updateTaskInput.title };
+    if (taskData.title !== undefined && taskData.title !== oldTask.title) {
+      changes.title = { from: oldTask.title, to: taskData.title };
       hasChanges = true;
     }
     if (
-      updateTaskInput.description !== undefined &&
-      updateTaskInput.description !== oldTask.description
+      taskData.description !== undefined &&
+      taskData.description !== oldTask.description
     ) {
       changes.description = {
         from: oldTask.description || 'Sin descripción',
-        to: updateTaskInput.description || 'Sin descripción',
+        to: taskData.description || 'Sin descripción',
       };
       hasChanges = true;
     }
     if (
-      updateTaskInput.priority !== undefined &&
-      updateTaskInput.priority !== oldTask.priority
+      taskData.priority !== undefined &&
+      taskData.priority !== oldTask.priority
     ) {
-      changes.priority = {
-        from: oldTask.priority,
-        to: updateTaskInput.priority,
-      };
+      changes.priority = { from: oldTask.priority, to: taskData.priority };
       hasChanges = true;
     }
     if (
-      updateTaskInput.startDate !== undefined &&
-      updateTaskInput.startDate !== oldTask.startDate
+      taskData.startDate !== undefined &&
+      taskData.startDate !== oldTask.startDate
     ) {
-      changes.startDate = { from: oldTask.startDate, to: updateTaskInput.startDate };
+      changes.startDate = { from: oldTask.startDate, to: taskData.startDate };
       hasChanges = true;
     }
     if (
-      updateTaskInput.dueDate !== undefined &&
-      updateTaskInput.dueDate !== oldTask.dueDate
+      taskData.dueDate !== undefined &&
+      taskData.dueDate !== oldTask.dueDate
     ) {
-      changes.dueDate = { from: oldTask.dueDate, to: updateTaskInput.dueDate };
+      changes.dueDate = { from: oldTask.dueDate, to: taskData.dueDate };
       hasChanges = true;
     }
 
-    if (
-      updateTaskInput.status !== undefined &&
-      updateTaskInput.status !== oldTask.status
-    ) {
+    if (taskData.status !== undefined && taskData.status !== oldTask.status) {
       metaObj.previousStatus = oldTask.status;
-      metaObj.newStatus = updateTaskInput.status;
+      metaObj.newStatus = taskData.status;
       hasChanges = true;
     }
 
     if (
-      updateTaskInput.sprintId !== undefined &&
-      updateTaskInput.sprintId !== oldTask.sprintId
+      taskData.sprintId !== undefined &&
+      taskData.sprintId !== oldTask.sprintId
     ) {
       metaObj.previousSprint = oldTask.sprintId;
-      metaObj.newSprint = updateTaskInput.sprintId;
+      metaObj.newSprint = taskData.sprintId;
       hasChanges = true;
     }
 
     if (
-      updateTaskInput.boardId !== undefined &&
-      updateTaskInput.boardId !== oldTask.boardId
+      taskData.boardId !== undefined &&
+      taskData.boardId !== oldTask.boardId
     ) {
       metaObj.previousBoard = oldTask.boardId;
-      metaObj.newBoard = updateTaskInput.boardId;
+      metaObj.newBoard = taskData.boardId;
       hasChanges = true;
       wasMoved = true;
     }
 
     if (
-      updateTaskInput.assigneeId !== undefined &&
-      updateTaskInput.assigneeId !== oldTask.assigneeId
+      taskData.assigneeId !== undefined &&
+      taskData.assigneeId !== oldTask.assigneeId
     ) {
       changes.assignee = {
         from: oldTask.assignee?.name || 'Nadie',
@@ -262,6 +271,10 @@ export class TasksService {
       };
       hasChanges = true;
       wasAssignedToSomeoneElse = true;
+    }
+
+    if (tags !== undefined) {
+      hasChanges = true;
     }
 
     if (Object.keys(changes).length > 0) {
@@ -285,7 +298,19 @@ export class TasksService {
       });
     }
 
-    return updatedTask;
+    const finalTask = await this.prisma.task.findUnique({
+      where: { id: id },
+      include: {
+        tags: { include: { tag: true } },
+      },
+    });
+
+    if (!finalTask) return null;
+
+    return {
+      ...finalTask,
+      tags: finalTask.tags.map((tt) => tt.tag.name),
+    };
   }
 
   async remove(id: string, userId: string) {
@@ -311,13 +336,41 @@ export class TasksService {
   }
 
   async findAllByProject(projectId: string, sprintId?: string) {
-    return this.prisma.task.findMany({
+    const tasks = await this.prisma.task.findMany({
       where: {
-        projectId,
-        sprintId: sprintId === 'backlog' ? null : sprintId,
+        projectId: projectId,
+        ...(sprintId ? { sprintId } : {}),
+      },
+      include: {
+        assignee: { select: { id: true, name: true, avatarUrl: true } },
+        tags: { include: { tag: true } },
+        comments: {
+          include: {
+            author: { select: { id: true, name: true, avatarUrl: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
       },
       orderBy: { position: 'asc' },
     });
+
+    return tasks.map((task) => ({
+      ...task,
+      tags: task.tags.map((tt) => tt.tag.name),
+      assignee: task.assignee
+        ? { ...task.assignee, userId: task.assignee.id }
+        : null,
+
+      comments: task.comments
+        ? task.comments.map((comment) => ({
+            ...comment,
+            author: {
+              ...comment.author,
+              userId: comment.author.id,
+            },
+          }))
+        : [],
+    }));
   }
 
   async getAllTasksPendingByUserId(userId: string) {
@@ -401,6 +454,119 @@ export class TasksService {
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);
       throw error;
+    }
+  }
+
+  async addComment(taskId: string, userId: string, content: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        projectId: true,
+        title: true,
+        assigneeId: true,
+        project: { select: { name: true } },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('La tarea no existe.');
+    }
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        content,
+        taskId: task.id,
+        authorId: userId,
+      },
+      include: {
+        author: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    const excerpt =
+      content.length > 50 ? content.substring(0, 50) + '...' : content;
+
+    await this.prisma.activityLog.create({
+      data: {
+        projectId: task.projectId,
+        userId: userId,
+        action: ActivityAction.COMMENTED,
+        entity: ActivityEntity.COMMENT,
+        entityId: comment.id,
+        meta: {
+          taskId: task.id,
+          taskTitle: task.title,
+          excerpt: excerpt,
+        },
+      },
+    });
+
+    if (task.assigneeId && task.assigneeId !== userId) {
+      const projectName = task.project?.name || 'Proyecto';
+
+      this.notificationsService
+        .createSystemNotification({
+          userId: task.assigneeId!,
+          type: NotificationType.COMMENTARY_MENTION,
+          title: '💬 Nuevo comentario',
+          message: `[${projectName}] ${comment.author.name} comentó en "${task.title}": ${excerpt}`,
+          entityId: task.id,
+        })
+        .catch((err) => console.error('Error enviando notificación:', err));
+    }
+
+    return {
+      ...comment,
+      author: {
+        ...comment.author,
+        userId: comment.author.id,
+      },
+    };
+  }
+
+  private async handleTaskTags(
+    taskId: string,
+    projectId: string,
+    tagNames: string[],
+  ) {
+    await this.prisma.taskTag.deleteMany({
+      where: { taskId },
+    });
+
+    if (tagNames.length === 0) return;
+
+    const cleanTags = tagNames.map((t) => t.trim().toLowerCase());
+
+    for (const tagName of cleanTags) {
+      let tag = await this.prisma.tag.findUnique({
+        where: {
+          name_projectId: {
+            name: tagName,
+            projectId: projectId,
+          },
+        },
+      });
+
+      if (!tag) {
+        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+        tag = await this.prisma.tag.create({
+          data: {
+            name: tagName,
+            projectId: projectId,
+            color: randomColor,
+          },
+        });
+      }
+
+      await this.prisma.taskTag.create({
+        data: {
+          taskId: taskId,
+          tagId: tag.id,
+        },
+      });
     }
   }
 }

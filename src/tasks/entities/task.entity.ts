@@ -1,4 +1,6 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { TaskStatus, TaskPriority } from '@prisma/client';
+import { User } from 'src/auth/entities/auth.entity';
 
 @ObjectType()
 export class Task {
@@ -32,7 +34,6 @@ export class Task {
   @Field()
   creatorId: string;
 
-  // ─── Relaciones Ágiles & Híbridas ───
   @Field({ nullable: true })
   expectedResultId?: string;
 
@@ -53,4 +54,37 @@ export class Task {
 
   @Field()
   updatedAt: Date;
+
+  @Field(() => [String], { nullable: true })
+  tags?: string[];
+
+  @Field(() => [CommentEntity], { nullable: true })
+  comments?: CommentEntity[];
+}
+
+@ObjectType()
+export class CommentEntity {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  content: string;
+
+  @Field()
+  taskId: string;
+
+  @Field()
+  authorId: string;
+
+  @Field()
+  createdAt: Date;
+
+  @Field()
+  updatedAt: Date;
+
+  @Field(() => User, { nullable: true })
+  author?: User;
+
+  @Field(() => Task, { nullable: true })
+  task?: Task;
 }

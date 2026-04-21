@@ -44,6 +44,17 @@ type ColumnMetric {
   name: String!
 }
 
+type CommentEntity {
+  author: User
+  authorId: String!
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  task: Task
+  taskId: String!
+  updatedAt: DateTime!
+}
+
 input CreateBoardInput {
   color: String
   name: String!
@@ -152,6 +163,7 @@ enum MemberStatus {
 }
 
 type Mutation {
+  addCommentToTask(content: String!, taskId: String!): CommentEntity!
   addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
 
   """Soft-delete a project (sets isArchived = true)"""
@@ -408,6 +420,7 @@ type SubjectEntity {
 type Task {
   assigneeId: String
   boardId: String
+  comments: [CommentEntity!]
   createdAt: DateTime!
   creatorId: String!
   description: String
@@ -421,6 +434,7 @@ type Task {
   sprintId: String
   startDate: DateTime
   status: String!
+  tags: [String!]
   title: String!
   updatedAt: DateTime!
 }
@@ -490,6 +504,7 @@ input UpdateTaskInput {
   sprintId: String
   startDate: DateTime
   status: String
+  tags: [String!]
   title: String
 }
 

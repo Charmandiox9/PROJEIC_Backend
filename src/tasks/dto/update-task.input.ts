@@ -63,4 +63,8 @@ export class UpdateTaskInput {
   @IsString()
   @IsOptional()
   assigneeId?: string;
+
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  tags?: string[];
 }

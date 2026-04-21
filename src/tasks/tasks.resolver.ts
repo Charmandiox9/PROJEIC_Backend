@@ -10,6 +10,7 @@ import { ProjectMetrics } from '../project-metrics/entities/project-metric.entit
 import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ProjectRole } from '@prisma/client';
+import { CommentEntity } from './entities/task.entity';
 
 @Resolver(() => Task)
 @UseGuards(GqlAuthGuard, ProjectRoleGuard)
@@ -64,5 +65,15 @@ export class TasksResolver {
   findAllByUserId(@CurrentUser() user: any) {
     const userId = user.id || user.userId || user.sub;
     return this.tasksService.getAllTasksPendingByUserId(userId);
+  }
+
+  @Mutation(() => CommentEntity)
+  async addCommentToTask(
+    @Args('taskId') taskId: string,
+    @Args('content') content: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.tasksService.addComment(taskId, userId, content);
   }
 }
