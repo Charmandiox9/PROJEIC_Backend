@@ -55,6 +55,30 @@ type CommentEntity {
   updatedAt: DateTime!
 }
 
+type CommitAuthor {
+  name: String!
+  user: CommitAuthorUser
+}
+
+type CommitAuthorUser {
+  avatarUrl: String
+  login: String!
+}
+
+type CommitNode {
+  additions: Int!
+  author: CommitAuthor!
+  committedDate: String!
+  deletions: Int!
+  message: String!
+  oid: String!
+}
+
+type CommitStats {
+  totalAdditions: Int!
+  totalDeletions: Int!
+}
+
 input CreateBoardInput {
   color: String
   name: String!
@@ -154,6 +178,12 @@ type ExpectedResult {
   tasks: [Task]
   title: String!
   updatedAt: DateTime!
+}
+
+type GithubCommitHistory {
+  commits: [CommitNode!]!
+  stats: CommitStats!
+  totalCommits: Int!
 }
 
 enum MemberStatus {
@@ -367,6 +397,7 @@ type Query {
   expectedResultsByProject(projectId: String!): [ExpectedResult!]!
   findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
   findOne(id: String!): ProjectEntity!
+  getGithubCommits(branch: String! = "main", name: String!, owner: String!, token: String!): GithubCommitHistory!
   health: String!
   me: User!
   myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
