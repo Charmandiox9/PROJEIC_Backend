@@ -49,4 +49,14 @@ export class UpdateProjectInput extends PartialType(CreateProjectInput) {
   @IsEnum(ProjectMode)
   @IsOptional()
   mode?: ProjectMode;
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  githubOwner?: string;
+
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  githubRepo?: string;
 }

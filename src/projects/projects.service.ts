@@ -352,6 +352,20 @@ export class ProjectsService {
       };
     }
 
+    if (input.githubOwner !== undefined && input.githubOwner !== oldProject.githubOwner) {
+      changes.githubOwner = {
+        from: oldProject.githubOwner || 'Desvinculado',
+        to: input.githubOwner || 'Desvinculado',
+      };
+    }
+
+    if (input.githubRepo !== undefined && input.githubRepo !== oldProject.githubRepo) {
+      changes.githubRepo = {
+        from: oldProject.githubRepo || 'Desvinculado',
+        to: input.githubRepo || 'Desvinculado',
+      };
+    }
+
     if (Object.keys(changes).length > 0) {
       await this.prisma.activityLog.create({
         data: {

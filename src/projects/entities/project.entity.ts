@@ -117,4 +117,14 @@ export class ProjectEntity {
   @IsEnum(ProjectMode)
   @IsOptional()
   mode?: ProjectMode;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  githubOwner?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  githubRepo?: string;
 }

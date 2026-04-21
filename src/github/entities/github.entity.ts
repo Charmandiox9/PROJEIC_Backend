@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float, ID } from '@nestjs/graphql';
 
 @ObjectType()
 export class CommitAuthorUser {
@@ -58,4 +58,52 @@ export class GithubCommitHistory {
 
   @Field(() => [CommitNode])
   commits: CommitNode[];
+}
+
+@ObjectType()
+export class WorkflowRun {
+  @Field(() => Float)
+  id: number;
+
+  @Field()
+  status: string;
+
+  @Field({ nullable: true })
+  conclusion?: string;
+
+  @Field()
+  display_title: string;
+
+  @Field()
+  created_at: string;
+
+  @Field()
+  html_url: string;
+}
+
+@ObjectType()
+export class Artifact {
+  @Field(() => Float)
+  id: number;
+
+  @Field()
+  name: string;
+
+  @Field(() => Float)
+  size_in_bytes: number;
+
+  @Field()
+  expired: boolean;
+
+  @Field()
+  created_at: string;
+}
+
+@ObjectType()
+export class GithubActionResponse {
+  @Field()
+  success: boolean;
+
+  @Field()
+  message: string;
 }

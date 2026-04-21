@@ -21,6 +21,14 @@ input AddProjectMemberInput {
   role: ProjectRole!
 }
 
+type Artifact {
+  created_at: String!
+  expired: Boolean!
+  id: Float!
+  name: String!
+  size_in_bytes: Float!
+}
+
 type Board {
   color: String
   id: ID!
@@ -180,6 +188,11 @@ type ExpectedResult {
   updatedAt: DateTime!
 }
 
+type GithubActionResponse {
+  message: String!
+  success: Boolean!
+}
+
 type GithubCommitHistory {
   commits: [CommitNode!]!
   stats: CommitStats!
@@ -209,6 +222,7 @@ type Mutation {
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
+  dispatchWorkflow(owner: String!, ref: String!, repo: String!, token: String!, workflowId: String!): GithubActionResponse!
   getUploadPresignedUrl(contentType: String!, fileName: String!): PresignedUrlResponse!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
@@ -275,6 +289,8 @@ type ProjectEntity {
 
   """Optional long description"""
   description: String
+  githubOwner: String
+  githubRepo: String
 
   """Unique identifier (cuid)"""
   id: ID!
@@ -397,7 +413,9 @@ type Query {
   expectedResultsByProject(projectId: String!): [ExpectedResult!]!
   findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
   findOne(id: String!): ProjectEntity!
+  getArtifacts(owner: String!, repo: String!, token: String!): [Artifact!]!
   getGithubCommits(branch: String! = "main", name: String!, owner: String!, token: String!): GithubCommitHistory!
+  getWorkflowRuns(owner: String!, repo: String!, token: String!): [WorkflowRun!]!
   health: String!
   me: User!
   myNotifications(unreadOnly: Boolean! = false): [NotificationEntity!]!
@@ -483,6 +501,8 @@ input UpdateProjectInput {
   assignMeAsLeader: Boolean
   color: String
   description: String
+  githubOwner: String
+  githubRepo: String
 
   """ID of the project to update"""
   id: ID!
@@ -545,4 +565,13 @@ type User {
   isAdmin: Boolean
   name: String!
   userId: ID!
+}
+
+type WorkflowRun {
+  conclusion: String
+  created_at: String!
+  display_title: String!
+  html_url: String!
+  id: Float!
+  status: String!
 }
