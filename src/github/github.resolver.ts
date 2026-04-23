@@ -1,6 +1,14 @@
 import { Resolver, Query, Args, Mutation } from '@nestjs/graphql';
 import { GithubService } from './github.service';
-import { GithubCommitHistory, WorkflowRun, GithubActionResponse, Artifact } from './entities/github.entity';
+import {
+  GithubCommitHistory,
+  WorkflowRun,
+  GithubActionResponse,
+  Artifact,
+  PullRequest,
+  Deployment,
+  SecurityAlert,
+} from './entities/github.entity';
 
 @Resolver()
 export class GithubResolver {
@@ -33,7 +41,13 @@ export class GithubResolver {
     @Args('workflowId') workflowId: string,
     @Args('ref') ref: string,
   ) {
-    return this.githubService.dispatchWorkflow(token, owner, repo, workflowId, ref);
+    return this.githubService.dispatchWorkflow(
+      token,
+      owner,
+      repo,
+      workflowId,
+      ref,
+    );
   }
 
   @Query(() => [Artifact], { name: 'getArtifacts' })
@@ -43,5 +57,32 @@ export class GithubResolver {
     @Args('repo') repo: string,
   ) {
     return this.githubService.getArtifacts(token, owner, repo);
+  }
+
+  @Query(() => [PullRequest], { name: 'getPullRequests' })
+  async getPullRequests(
+    @Args('token') token: string,
+    @Args('owner') owner: string,
+    @Args('repo') repo: string,
+  ) {
+    return this.githubService.getPullRequests(token, owner, repo);
+  }
+
+  @Query(() => [Deployment], { name: 'getDeployments' })
+  async getDeployments(
+    @Args('token') token: string,
+    @Args('owner') owner: string,
+    @Args('repo') repo: string,
+  ) {
+    return this.githubService.getDeployments(token, owner, repo);
+  }
+
+  @Query(() => [SecurityAlert], { name: 'getSecurityAlerts' })
+  async getSecurityAlerts(
+    @Args('token') token: string,
+    @Args('owner') owner: string,
+    @Args('repo') repo: string,
+  ) {
+    return this.githubService.getSecurityAlerts(token, owner, repo);
   }
 }

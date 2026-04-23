@@ -78,6 +78,9 @@ export class WorkflowRun {
   created_at: string;
 
   @Field()
+  updated_at: string;
+
+  @Field()
   html_url: string;
 }
 
@@ -106,4 +109,67 @@ export class GithubActionResponse {
 
   @Field()
   message: string;
+}
+
+@ObjectType()
+export class PullRequest {
+  @Field(() => Float)
+  id: number;
+
+  @Field()
+  title: string;
+
+  @Field()
+  state: string;
+
+  @Field()
+  html_url: string;
+
+  @Field()
+  created_at: string;
+
+  @Field()
+  user_login: string;
+
+  @Field()
+  user_avatar: string;
+}
+
+@ObjectType()
+export class Deployment {
+  @Field(() => Float)
+  id: number;
+
+  @Field()
+  environment: string;
+
+  @Field()
+  ref: string;
+
+  @Field()
+  created_at: string;
+
+  @Field()
+  creator_login: string;
+}
+
+@ObjectType()
+export class SecurityAlert {
+  @Field()
+  number: number;
+
+  @Field()
+  state: string;
+
+  @Field()
+  severity: string;
+
+  @Field()
+  package_name: string;
+
+  @Field()
+  created_at: string;
+
+  @Field()
+  html_url: string;
 }

@@ -164,6 +164,14 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Deployment {
+  created_at: String!
+  creator_login: String!
+  environment: String!
+  id: Float!
+  ref: String!
+}
+
 type Evidence {
   createdAt: DateTime!
   fileKey: String
@@ -402,6 +410,16 @@ type PublicUser {
   name: String!
 }
 
+type PullRequest {
+  created_at: String!
+  html_url: String!
+  id: Float!
+  state: String!
+  title: String!
+  user_avatar: String!
+  user_login: String!
+}
+
 type Query {
   activityLogsByProject(projectId: String!): [ActivityLog!]!
   boardsByProject(projectId: String!): [Board!]!
@@ -414,7 +432,10 @@ type Query {
   findAll(filter: ProjectsFilterInput, includeMembers: Boolean): PaginatedProjects!
   findOne(id: String!): ProjectEntity!
   getArtifacts(owner: String!, repo: String!, token: String!): [Artifact!]!
+  getDeployments(owner: String!, repo: String!, token: String!): [Deployment!]!
   getGithubCommits(branch: String! = "main", name: String!, owner: String!, token: String!): GithubCommitHistory!
+  getPullRequests(owner: String!, repo: String!, token: String!): [PullRequest!]!
+  getSecurityAlerts(owner: String!, repo: String!, token: String!): [SecurityAlert!]!
   getWorkflowRuns(owner: String!, repo: String!, token: String!): [WorkflowRun!]!
   health: String!
   me: User!
@@ -438,6 +459,15 @@ enum ResultStatus {
   NOT_STARTED
   STARTED
   VALIDATED
+}
+
+type SecurityAlert {
+  created_at: String!
+  html_url: String!
+  number: Float!
+  package_name: String!
+  severity: String!
+  state: String!
 }
 
 type Sprint {
@@ -574,4 +604,5 @@ type WorkflowRun {
   html_url: String!
   id: Float!
   status: String!
+  updated_at: String!
 }
