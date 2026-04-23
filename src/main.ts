@@ -16,7 +16,7 @@ async function bootstrap() {
     'http://127.0.0.1:3000',  // A veces Next.js resuelve a 127.0.0.1
     // Si algún día subes el frontend a Railway, agregas su URL aquí:
     // 'https://projeicfrontend-production.up.railway.app'
-  ].filter(Boolean); // Filtra los valores undefined
+  ].filter((x): x is string => !!x); // Filtra los valores undefined
 
   app.enableCors({
     origin: allowedOrigins,
