@@ -15,15 +15,10 @@ import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ProjectRole } from '@prisma/client';
 
-/** Type guard que reemplaza los import() inline, evitando el error de isolatedModules */
 function isFieldNode(node: SelectionNode): node is FieldNode {
   return node.kind === 'Field';
 }
 
-/**
- * Detecta si el cliente pidió el campo 'members' dentro de items.
- * Evita hacer el JOIN innecesario cuando no se necesitan los members.
- */
 function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
   const topSelections = info.fieldNodes[0]?.selectionSet?.selections ?? [];
 
@@ -42,9 +37,6 @@ function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
 export class ProjectsResolver {
   constructor(private readonly projectsService: ProjectsService) {}
 
-  // ─── Queries ─────────────────────────────────────────────────────────────
-
-  // pública: no requiere autenticación
   @Query(() => PaginatedProjects)
   findAll(
     @CurrentUser() user: any,
@@ -63,7 +55,6 @@ export class ProjectsResolver {
     @Args('includeMembers', { type: () => Boolean, nullable: true })
     includeMembers?: boolean,
   ) {
-    // Usamos el mismo truco seguro para extraer el ID que descubrimos antes
     const userId = user.id || user.userId || user.sub;
 
     if (!userId) {
@@ -75,7 +66,6 @@ export class ProjectsResolver {
     return this.projectsService.findMyProjects(userId, filter, includeMembers);
   }
 
-  // pública: no requiere autenticación
   @Query(() => ProjectEntity)
   findOne(
     @Args('id', { type: () => String }) id: string,
@@ -83,8 +73,6 @@ export class ProjectsResolver {
   ) {
     return this.projectsService.findOne(id, user?.sub);
   }
-
-  // ─── Mutations ───────────────────────────────────────────────────────────
 
   @UseGuards(InternalUserGuard)
   @Mutation(() => ProjectEntity, { name: 'createProject' })
@@ -114,7 +102,6 @@ export class ProjectsResolver {
       );
     }
 
-    // 3. Pasamos el ID real al servicio
     return this.projectsService.update(input, userId);
   }
 

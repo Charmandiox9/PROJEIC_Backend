@@ -9,6 +9,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ProjectRole } from '@prisma/client';
 import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
+import { ProjectMember } from './entities/project-member.entity';
 
 @UseGuards(GqlAuthGuard, ProjectRoleGuard)
 @Resolver(() => ProjectMemberEntity)
@@ -57,5 +58,13 @@ export class ProjectMembersResolver {
       .removeMember(memberId, user.userId)
       .then(() => true)
       .catch(() => false);
+  }
+
+  @Mutation(() => ProjectMember)
+  async redeemProjectInvitation(
+    @Args('token') token: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.projectMembersService.redeemProjectInvitation(token, user.id);
   }
 }

@@ -26,13 +26,6 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import { ProjectMembersService } from 'src/project-members/project-members.service';
 import { BoardsService } from 'src/boards/boards.service';
 
-/**
- * Business-logic layer for Projects.
- * Orchestrates the repository and enforces domain rules:
- * - a project name must be unique inside creation (can be relaxed later)
- * - delete uses soft-delete (archive) by default
- * - hard-delete is a separate, explicit operation
- */
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
@@ -45,8 +38,6 @@ export class ProjectsService {
     @Inject(forwardRef(() => ProjectMembersService))
     private readonly projectMembersService: ProjectMembersService,
   ) {}
-
-  // ─── Create ──────────────────────────────────────────────────────────────
 
   async create(input: CreateProjectInput, userId: string): Promise<Project> {
     const initialMembers: {
@@ -111,30 +102,25 @@ export class ProjectsService {
       input.professorId &&
       input.professorId !== userId
     ) {
-      // A. Buscamos el correo del profesor usando su ID
       const professor = await this.prisma.user.findUnique({
         where: { id: input.professorId },
         select: { email: true },
       });
 
       if (professor) {
-        // B. Llamamos a tu método addMember.
-        // Como el proyecto ya se creó y el estudiante es LEADER, pasará la validación.
         await this.projectMembersService.addMember(
           {
             projectId: newProject.id,
             email: professor.email,
             role: ProjectRole.SUPERVISOR,
           },
-          userId, // El estudiante que está creando el proyecto es quien hace la invitación
+          userId,
         );
       }
     }
 
     return newProject;
   }
-
-  // ─── Read ─────────────────────────────────────────────────────────────────
 
   async findAll(
     userId: string | undefined,
@@ -217,10 +203,6 @@ export class ProjectsService {
     if (!project) {
       throw new NotFoundException(`Project with id "${id}" not found`);
     }
-
-    // 🔥 Regla de Seguridad: Validamos acceso localmente o puedes hacerlo en el repositorio
-    // (Asumiendo que repository.findById devuelve los miembros o necesitas una query extra)
-    // Para mantener tu patrón actual simple, podrías requerir que `findById` verifique el acceso.
 
     return project;
   }
@@ -352,14 +334,20 @@ export class ProjectsService {
       };
     }
 
-    if (input.githubOwner !== undefined && input.githubOwner !== oldProject.githubOwner) {
+    if (
+      input.githubOwner !== undefined &&
+      input.githubOwner !== oldProject.githubOwner
+    ) {
       changes.githubOwner = {
         from: oldProject.githubOwner || 'Desvinculado',
         to: input.githubOwner || 'Desvinculado',
       };
     }
 
-    if (input.githubRepo !== undefined && input.githubRepo !== oldProject.githubRepo) {
+    if (
+      input.githubRepo !== undefined &&
+      input.githubRepo !== oldProject.githubRepo
+    ) {
       changes.githubRepo = {
         from: oldProject.githubRepo || 'Desvinculado',
         to: input.githubRepo || 'Desvinculado',

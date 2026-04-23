@@ -234,6 +234,7 @@ type Mutation {
   getUploadPresignedUrl(contentType: String!, fileName: String!): PresignedUrlResponse!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
+  redeemProjectInvitation(token: String!): ProjectMember!
   removeBoard(id: String!): Board!
   removeProjectMember(memberId: ID!): Boolean!
   removeSubject(id: String!): SubjectEntity!
@@ -330,6 +331,14 @@ type ProjectEntity {
 
   """ISO timestamp of last update"""
   updatedAt: DateTime!
+}
+
+type ProjectMember {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  status: MemberStatus!
+  user: PublicUser!
 }
 
 type ProjectMemberEntity {

@@ -104,6 +104,13 @@ enum ResultStatus {
   COMPLETED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -161,6 +168,7 @@ model Project {
   tasks        Task[]
   activityLogs ActivityLog[]
   subject      Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  invitations ProjectInvitation[]
 
   @@map("projects")
 }
@@ -429,4 +437,22 @@ model StatusLog {
   reason         String?      @db.Text
   userId         String
   createdAt      DateTime     @default(now())
+}
+
+model ProjectInvitation {
+  id        String           @id @default(cuid())
+  email     String
+  role      ProjectRole
+  token     String           @unique
+  status    InvitationStatus @default(PENDING)
+  
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime         @default(now())
+  expiresAt DateTime
+
+  @@unique([email, projectId]) 
+  @@index([token])
+  @@map("project_invitations")
 }

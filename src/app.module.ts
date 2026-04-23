@@ -29,6 +29,7 @@ import { StorageModule } from './storage/storage.module';
 import { S3Module } from './s3/s3.module';
 import { EvidenceModule } from './evidence/evidence.module';
 import { GithubModule } from './github/github.module';
+import { EmailModule } from './email/email.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -69,6 +70,7 @@ const devProviders =
     S3Module,
     EvidenceModule,
     GithubModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
