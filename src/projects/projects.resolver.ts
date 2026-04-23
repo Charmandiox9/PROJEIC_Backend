@@ -86,7 +86,7 @@ export class ProjectsResolver {
 
   // ─── Mutations ───────────────────────────────────────────────────────────
 
-  @UseGuards(InternalUserGuard)
+  @UseGuards(GqlAuthGuard, InternalUserGuard)
   @Mutation(() => ProjectEntity, { name: 'createProject' })
   create(
     @Args('input') input: CreateProjectInput,
