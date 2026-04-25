@@ -29,7 +29,7 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // El agente recrea SOLO el backend
+                // 1. Recrear el contenedor con el código nuevo
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
@@ -39,11 +39,11 @@ pipeline {
                   -f docker-compose.yml up -d --force-recreate --no-deps backend
                 '''
                 
-                // Reiniciamos Nginx
-                sh 'docker restart nginx || true'
+                // 2. Reiniciamos el proxy
+                sh 'docker restart projeic_nginx_1 || true'
                 
-                // Limpiamos imágenes viejas
-                sh 'docker image prune -f'
+                // 3. Limpieza suave
+                sh 'docker image prune -f || true'
             }
         }
     }
