@@ -65,7 +65,23 @@ export class ProjectMembersService {
         },
       });
 
-      const inviteUrl = `http://localhost:3000/projeic/auth/login?invite_token=${inviteToken}`;
+      let frontendUrl = process.env.FRONTEND_URL;
+
+      if (!frontendUrl) {
+        if (process.env.NODE_ENV === 'production') {
+          frontendUrl = '';
+        } else {
+          frontendUrl = 'http://localhost:3000';
+        }
+      }
+
+      const cleanFrontendUrl = frontendUrl
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .replace(/\/$/, '');
+
+      const inviteUrl = `${cleanFrontendUrl}/projeic/auth/login?invite_token=${inviteToken}`;
+
       await this.emailService.sendProjectInvitation(
         input.email,
         project.name,
@@ -131,7 +147,11 @@ export class ProjectMembersService {
       },
     });
 
-    const inAppUrl = `http://localhost:3000/projeic/misc/proyectos/${input.projectId}/invites`;
+    const frontendUrl = (
+      process.env.FRONTEND_URL || 'http://localhost:3000'
+    ).replace(/\/$/, '');
+
+    const inAppUrl = `${frontendUrl}/projeic/misc/proyectos/${input.projectId}/invites`;
     await this.emailService.sendProjectInvitation(
       input.email,
       project.name,

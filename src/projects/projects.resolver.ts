@@ -74,7 +74,7 @@ export class ProjectsResolver {
     return this.projectsService.findOne(id, user?.sub);
   }
 
-  @UseGuards(InternalUserGuard)
+  @UseGuards(GqlAuthGuard, InternalUserGuard)
   @Mutation(() => ProjectEntity, { name: 'createProject' })
   create(
     @Args('input') input: CreateProjectInput,

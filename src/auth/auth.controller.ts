@@ -20,25 +20,37 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     const jwt = await this.authService.login(req.user);
 
-    // Leemos de ConfigService y como fallback directo de process.env
-    // Usamos .trim() + reemplazamos comillas por si Railway las incluye literalmente
-    let frontendUrl = (
+    // 1. Buscamos la URL explícita (Útil para Railway donde Front y Back son dominios distintos)
+    let frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ||
-      process.env.FRONTEND_URL ||
-      ''
-    ).trim().replace(/^["']|["']$/g, '');
+      process.env.FRONTEND_URL;
 
-    // LOG DE DEBUG PARA RAILWAY
-    console.log('DEBUG BACKEND - FRONTEND_URL desde config:', frontendUrl);
-    console.log('DEBUG BACKEND - RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT);
-
+    // 2. Si no hay variable definida, inferimos inteligentemente según el entorno
     if (!frontendUrl) {
-      // Fallback a localhost en desarrollo local
-      frontendUrl = 'http://localhost:3000';
+      if (process.env.NODE_ENV === 'production') {
+        // En Producción (Docker), Nginx unifica todo.
+        // Usar un string vacío generará una redirección relativa (ej: /projeic/auth/success)
+        // El navegador mantendrá automáticamente la IP 172.16.13.101
+        frontendUrl = '';
+      } else {
+        // En Desarrollo Local, Front (3000) y Back (4000) están separados
+        frontendUrl = 'http://localhost:3000';
+      }
     }
 
-    const redirectPath = `${frontendUrl}/projeic/auth/success?token=${jwt.accessToken}`;
-    console.log('DEBUG BACKEND - Redirigiendo a:', redirectPath);
+    // 3. Limpiamos comillas extrañas (Railway) y slashes finales
+    const cleanFrontendUrl = frontendUrl
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/\/$/, '');
+
+    // 4. Armamos la ruta
+    // Nota: Express es inteligente. Si cleanFrontendUrl es "", la ruta empieza con "/"
+    // y hace un redirect relativo seguro.
+    const redirectPath = `${cleanFrontendUrl}/projeic/auth/success?token=${jwt.accessToken}`;
+
+    console.log(`[OAuth Debug] Entorno: ${process.env.NODE_ENV}`);
+    console.log(`[OAuth Debug] Redirigiendo a: ${redirectPath}`);
 
     res.redirect(redirectPath);
   }
