@@ -29,6 +29,8 @@ pipeline {
 
         stage('Desplegar') {
             steps {
+                sh 'docker rm -f backend || true'
+                
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
