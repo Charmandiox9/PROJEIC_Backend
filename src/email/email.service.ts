@@ -22,7 +22,7 @@ export class EmailService {
   ) {
     try {
       const data = await this.resend.emails.send({
-        from: 'PROJEIC <onboarding@resend.dev>',
+        from: 'PROJEIC <notificaciones@danielduran.engineer>',
         to: [toEmail],
         subject: `Invitación para unirte a ${projectName} en PROJEIC`,
 
