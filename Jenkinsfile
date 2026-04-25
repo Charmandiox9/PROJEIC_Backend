@@ -31,9 +31,9 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm \
-                  -v /home/adminc/projeic:/home/adminc/projeic \
+                  -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-                  -w /home/adminc/projeic \
+                  -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
                   -f docker-compose.yml up -d --no-deps backend
                 '''
