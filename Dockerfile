@@ -29,4 +29,4 @@ RUN mkdir -p uploads
 
 EXPOSE 4000
 # Ejecuta migraciones y luego arranca el servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main"]
