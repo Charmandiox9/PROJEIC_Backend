@@ -29,13 +29,7 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Apagamos el frontend temporalmente para que no bloquee al backend
-                sh 'docker stop frontend || true'
-                
-                // 2. Destruimos el contenedor viejo del backend sin piedad a nivel del daemon
-                sh 'docker rm -f backend || true'
-                
-                // 3. El agente de Compose ahora tiene la vía libre para levantar el backend limpio
+                // 1. Reemplazamos SOLO el backend aislando su red
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
@@ -45,13 +39,10 @@ pipeline {
                   -f docker-compose.yml up -d --force-recreate --no-deps backend
                 '''
                 
-                // 4. Volvemos a encender el frontend
-                sh 'docker start frontend || true'
+                // 2. Reiniciamos el proxy Nginx para que detecte el nuevo backend
+                sh 'docker restart nginx || true'
                 
-                // 5. Reiniciamos el proxy Nginx para que enrute el tráfico correctamente
-                sh 'docker restart projeic_nginx_1 || true'
-                
-                // 6. Limpieza suave
+                // 3. Limpieza de disco suave
                 sh 'docker image prune -f || true'
             }
         }
