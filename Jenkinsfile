@@ -29,49 +29,21 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Detenemos tanto al hijo (nginx) como al padre (backend) juntos
-                sh '''
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop nginx backend || true
-                '''
-
-                // 2. Borramos los contenedores viejos de ambos para liberar los nombres
-                sh '''
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f nginx backend || true
-                '''
-
-                // 3. Levantamos ambos. Compose sabrá que primero va el backend y luego nginx.
-                // Al nombrar "backend nginx", evitamos que toque a Jenkins, la BD o Prometheus.
+                // 1. Reemplazamos SOLO el backend aislando su red
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                   -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d backend nginx
+                  -f docker-compose.yml up -d --force-recreate --no-deps backend
                 '''
                 
-                // 4. Limpieza de disco
+                // 2. Reiniciamos el proxy Nginx para que detecte el nuevo backend
+                sh 'docker restart nginx || true'
+                
+                // 3. Limpieza de disco suave
                 sh 'docker image prune -f || true'
-            }
-        }
-
-        stage('Monitoreo Inteligente Post-Despliegue') {
-            steps {
-                echo 'Despliegue finalizado. Esperando 30 segundos para que NestJS levante y Prometheus recolecte datos...'
-                sleep time: 30, unit: 'SECONDS'
-                
-                echo 'Consultando estado de salud en Prometheus...'
-                sh '''
-                    # Buscamos si Prometheus está vivo y respondiendo
-                    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://prometheus:9090/-/ready)
-                    
-                    if [ "$HTTP_STATUS" -eq 200 ]; then
-                        echo "✅ Stack de Monitoreo Operativo. Telemetría conectada."
-                    else
-                        echo "❌ Advertencia: Prometheus no está respondiendo (Status: $HTTP_STATUS)."
-                        exit 1
-                    fi
-                '''
             }
         }
     }
