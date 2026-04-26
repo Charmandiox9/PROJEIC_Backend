@@ -330,11 +330,18 @@ export class ProjectMembersService {
         projectId: invitation.projectId,
         userId: userId,
         role: invitation.role,
-        status: 'ACTIVE',
+        status: 'PENDING',
       },
+      include: { project: true },
     });
 
-    await this.projectsService.recalculateWipLimits(invitation.projectId);
+    await this.notificationsService.createSystemNotification({
+      userId: userId,
+      type: 'PROJECT_INVITATION',
+      title: 'Nueva invitación a proyecto',
+      message: `Has sido invitado a participar en "${newMember.project.name}" como ${invitation.role}.`,
+      entityId: invitation.projectId,
+    });
 
     await this.prisma.projectInvitation.delete({
       where: { id: invitation.id },
