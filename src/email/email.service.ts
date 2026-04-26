@@ -47,7 +47,7 @@ export class EmailService {
                     <table cellpadding="0" cellspacing="0">
                     <tr>
                         <td style="width:32px;height:32px;text-align:center;vertical-align:middle;">
-                            <img src="https://projeic.danielduran.engineer/logo.png" alt="PROJEIC" width="32" height="32" style="display:block; border-radius:8px; width:32px; height:32px; object-fit:cover;" />
+                            <img src="https://i.imgur.com/9Nbw0ye.png" alt="PROJEIC" width="32" height="32" style="display:block; border-radius:8px; width:32px; height:32px; object-fit:cover;" />
                         </td>
                         <td style="padding-left:10px;font-family:'Syne',Arial,sans-serif;font-size:16px;font-weight:800;color:#ffffff;letter-spacing:0.08em;">PROJEIC</td>
                     </tr>
