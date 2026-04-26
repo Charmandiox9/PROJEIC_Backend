@@ -29,6 +29,9 @@ pipeline {
 
         stage('Desplegar') {
             steps {
+                // 0. Limpieza preventiva: elimina el contenedor viejo si se quedó atascado
+                sh 'docker rm -f backend || true'
+
                 // 1. Reemplazamos SOLO el backend aislando su red
                 sh '''
                 docker run --rm \
@@ -59,9 +62,6 @@ pipeline {
                     
                     if [ "$HTTP_STATUS" -eq 200 ]; then
                         echo "✅ Stack de Monitoreo Operativo. Telemetría conectada."
-                        
-                        # Opcional: Aquí podrías hacer una query avanzada consultando errores 500, 
-                        # pero confirmar que el stack PLG levantó sin ahogar la VM es el primer gran paso.
                     else
                         echo "❌ Advertencia: Prometheus no está respondiendo (Status: $HTTP_STATUS)."
                         exit 1
