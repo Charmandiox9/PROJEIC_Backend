@@ -55,7 +55,7 @@ pipeline {
                 echo 'Consultando estado de salud en Prometheus...'
                 sh '''
                     # Buscamos si Prometheus está vivo y respondiendo
-                    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/-/ready)
+                    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://prometheus:9090/-/ready)
                     
                     if [ "$HTTP_STATUS" -eq 200 ]; then
                         echo "✅ Stack de Monitoreo Operativo. Telemetría conectada."
