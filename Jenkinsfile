@@ -29,20 +29,40 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Reemplazamos SOLO el backend aislando su red
+                // 1. Stop the backend gracefully
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                   -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d --force-recreate --no-deps backend
+                  -f docker-compose.yml stop backend || true
+                '''
+
+                // 2. Remove the backend container to free up the name
+                sh '''
+                docker run --rm \
+                  -v /var/www/projeic:/var/www/projeic \
+                  -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+                  -w /var/www/projeic \
+                  docker.io/docker/compose:1.29.2 \
+                  -f docker-compose.yml rm -f backend || true
+                '''
+
+                // 3. Bring up the new backend container
+                sh '''
+                docker run --rm \
+                  -v /var/www/projeic:/var/www/projeic \
+                  -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+                  -w /var/www/projeic \
+                  docker.io/docker/compose:1.29.2 \
+                  -f docker-compose.yml up -d --no-deps backend
                 '''
                 
-                // 2. Reiniciamos el proxy Nginx para que detecte el nuevo backend
+                // 4. Restart Nginx so it picks up the new backend IP
                 sh 'docker restart nginx || true'
                 
-                // 3. Limpieza de disco suave
+                // 5. Clean up old images
                 sh 'docker image prune -f || true'
             }
         }
