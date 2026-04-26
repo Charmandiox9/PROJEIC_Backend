@@ -12,4 +12,9 @@ export class UpdateProjectMemberInput {
   @Field(() => ProjectRole)
   @IsEnum(ProjectRole)
   role: ProjectRole;
+
+  @Field(() => ID, { nullable: true })
+  @IsString()
+  @IsNotEmpty()
+  projectId?: string;
 }
