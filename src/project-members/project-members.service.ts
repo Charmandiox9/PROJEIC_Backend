@@ -91,6 +91,8 @@ export class ProjectMembersService {
         project.methodology,
         project.isInstitutional,
         input.role ? input.role : project.mode,
+        (await this.prisma.user.findUnique({ where: { id: requesterId } }))
+          ?.name || 'Administrador',
       );
 
       throw new NotFoundException(
@@ -161,6 +163,8 @@ export class ProjectMembersService {
       project.methodology,
       project.isInstitutional,
       input.role ? input.role : project.mode,
+      (await this.prisma.user.findUnique({ where: { id: requesterId } }))
+        ?.name || 'Administrador',
     );
 
     return newMember;

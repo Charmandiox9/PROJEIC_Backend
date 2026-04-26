@@ -19,6 +19,7 @@ export class EmailService {
     projectMethodology?: string,
     isInstitutional?: boolean,
     role?: string,
+    inviterName?: string,
   ) {
     try {
       const data = await this.resend.emails.send({
@@ -45,8 +46,8 @@ export class EmailService {
                 <td style="background:linear-gradient(135deg,#1e1248 0%,#2d1f6e 40%,#1a3a6e 100%);padding:44px 40px 36px;">
                     <table cellpadding="0" cellspacing="0">
                     <tr>
-                        <td style="background:linear-gradient(135deg,#6366f1,#3b82f6);border-radius:8px;width:32px;height:32px;text-align:center;vertical-align:middle;">
-                        <span style="color:white;font-size:16px;font-weight:bold;line-height:32px;">P</span>
+                        <td style="width:32px;height:32px;text-align:center;vertical-align:middle;">
+                            <img src="https://projeic.danielduran.engineer/logo.png" alt="PROJEIC" width="32" height="32" style="display:block; border-radius:8px; width:32px; height:32px; object-fit:cover;" />
                         </td>
                         <td style="padding-left:10px;font-family:'Syne',Arial,sans-serif;font-size:16px;font-weight:800;color:#ffffff;letter-spacing:0.08em;">PROJEIC</td>
                     </tr>
@@ -64,7 +65,7 @@ export class EmailService {
                 <tr>
                 <td style="padding:36px 40px 32px;">
                     <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
-                    Hola, un administrador de <strong style="color:#1e1248;">PROJEIC</strong> te ha invitado a unirte como ${role} en el siguiente proyecto:
+                    Hola, ${inviterName} te ha invitado a unirte como ${role} en el siguiente proyecto:
                     </p>
 
                     <!-- Project card -->
