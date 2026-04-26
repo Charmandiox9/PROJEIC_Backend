@@ -29,18 +29,28 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // Dejamos que Compose gestione el ciclo de vida completo.
-                // Actualizará el backend y reconectará Nginx automáticamente.
+                // 1. Detenemos tanto al hijo (nginx) como al padre (backend) juntos
+                sh '''
+                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop nginx backend || true
+                '''
+
+                // 2. Borramos los contenedores viejos de ambos para liberar los nombres
+                sh '''
+                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f nginx backend || true
+                '''
+
+                // 3. Levantamos ambos. Compose sabrá que primero va el backend y luego nginx.
+                // Al nombrar "backend nginx", evitamos que toque a Jenkins, la BD o Prometheus.
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                   -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d
+                  -f docker-compose.yml up -d backend nginx
                 '''
                 
-                // Limpieza de imágenes viejas para no llenar los 4GB de disco
+                // 4. Limpieza de disco
                 sh 'docker image prune -f || true'
             }
         }
