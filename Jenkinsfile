@@ -29,27 +29,18 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 0. Limpieza preventiva inteligente: detener y remover usando compose
-                sh '''
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop backend || true
-                
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f backend || true
-                '''
-
-                // 1. Reemplazamos SOLO el backend
+                // Dejamos que Compose gestione el ciclo de vida completo.
+                // Actualizará el backend y reconectará Nginx automáticamente.
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                   -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d --force-recreate --no-deps backend
+                  -f docker-compose.yml up -d
                 '''
                 
-                // 2. Reiniciamos el proxy Nginx para que detecte el nuevo backend
-                sh 'docker restart nginx || true'
-                
-                // 3. Limpieza de disco suave
+                // Limpieza de imágenes viejas para no llenar los 4GB de disco
                 sh 'docker image prune -f || true'
             }
         }
