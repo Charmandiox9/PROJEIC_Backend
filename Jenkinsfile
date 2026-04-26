@@ -29,10 +29,14 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 0. Limpieza preventiva: elimina el contenedor viejo si se quedó atascado
-                sh 'docker rm -f backend || true'
+                // 0. Limpieza preventiva inteligente: detener y remover usando compose
+                sh '''
+                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop backend || true
+                
+                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f backend || true
+                '''
 
-                // 1. Reemplazamos SOLO el backend aislando su red
+                // 1. Reemplazamos SOLO el backend
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
