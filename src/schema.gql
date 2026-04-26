@@ -454,6 +454,7 @@ type Query {
   myWeeklyActivityPoints: Int!
   pendingTasksByUserId: [Task!]!
   projectMetrics(projectId: String!): ProjectMetrics!
+  projectsActiveCount: Float!
   sprintBurndown(sprintId: String!): [BurndownDataPoint!]!
   sprintsByProject(projectId: String!): [Sprint!]!
   subject(id: String!): SubjectEntity!
@@ -561,6 +562,7 @@ input UpdateProjectInput {
 
 input UpdateProjectMemberInput {
   memberId: ID!
+  projectId: ID
   role: ProjectRole!
 }
 

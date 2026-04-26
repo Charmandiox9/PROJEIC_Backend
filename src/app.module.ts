@@ -30,6 +30,7 @@ import { S3Module } from './s3/s3.module';
 import { EvidenceModule } from './evidence/evidence.module';
 import { GithubModule } from './github/github.module';
 import { EmailModule } from './email/email.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -71,6 +72,7 @@ const devProviders =
     EvidenceModule,
     GithubModule,
     EmailModule,
+    PrometheusModule.register(),
   ],
   controllers: [AppController],
   providers: [
