@@ -399,6 +399,15 @@ export class ProjectsService {
     return calculatedWip;
   }
 
+  async getProjectsActiveCount(): Promise<number> {
+    return this.prisma.project.count({
+      where: {
+        status: ProjectStatus.ACTIVE,
+        isArchived: false,
+      },
+    });
+  }
+
   private async assertExists(id: string): Promise<void> {
     const exists = await this.repository.exists(id);
     if (!exists) {

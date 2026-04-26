@@ -122,4 +122,9 @@ export class ProjectsResolver {
   remove(@Args('id', { type: () => ID }) id: string): Promise<Project> {
     return this.projectsService.remove(id);
   }
+
+  @Query(() => Number, { name: 'projectsActiveCount' })
+  getProjectsActiveCount(): Promise<number> {
+    return this.projectsService.getProjectsActiveCount();
+  }
 }
