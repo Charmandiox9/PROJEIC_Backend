@@ -171,50 +171,82 @@ export class ProjectMembersService {
     userId: string,
     accept: boolean,
   ) {
-    const invitation = await this.prisma.projectMember.findUnique({
+    let membership = await this.prisma.projectMember.findUnique({
       where: { userId_projectId: { userId, projectId } },
     });
 
-    // DESPUES HAY QUE HACER QUE SE ELIMINE 7 DIAS DESPUES DE SER MARCADA COMO READ
-    await this.prisma.notification.deleteMany({
-      where: { userId, type: 'PROJECT_INVITATION', entityId: projectId },
-    });
+    if (!membership) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
-    if (!invitation || invitation.status !== 'PENDING') {
-      throw new NotFoundException(
-        'No tienes ninguna invitación pendiente para este proyecto.',
-      );
-    }
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado.');
+      }
 
-    if (accept) {
-      const activeMember = await this.prisma.projectMember.update({
-        where: { id: invitation.id },
-        data: { status: 'ACTIVE' },
-        include: {
-          user: { select: { id: true, name: true, avatarUrl: true } },
+      const invitation = await this.prisma.projectInvitation.findFirst({
+        where: {
+          projectId: projectId,
+          email: user.email,
         },
       });
 
+      if (!invitation) {
+        throw new NotFoundException(
+          'No tienes ninguna invitación pendiente para este proyecto.',
+        );
+      }
+
+      if (accept) {
+        membership = await this.prisma.projectMember.create({
+          data: {
+            projectId: projectId,
+            userId: userId,
+            role: invitation.role,
+            status: 'ACTIVE',
+          },
+        });
+
+        await this.prisma.projectInvitation.delete({
+          where: { id: invitation.id },
+        });
+      } else {
+        await this.prisma.projectInvitation.delete({
+          where: { id: invitation.id },
+        });
+        return null;
+      }
+    }
+
+    if (membership && membership.status === 'PENDING') {
+      if (accept) {
+        membership = await this.prisma.projectMember.update({
+          where: { id: membership.id },
+          data: { status: 'ACTIVE' },
+        });
+      } else {
+        await this.prisma.projectMember.delete({
+          where: { id: membership.id },
+        });
+        return null;
+      }
+    }
+
+    if (accept && membership) {
       await this.prisma.activityLog.create({
         data: {
-          projectId: invitation.projectId,
-          userId: userId,
+          projectId,
+          userId,
           action: ActivityAction.JOINED,
           entity: ActivityEntity.MEMBER,
-          entityId: invitation.id,
-          meta: { role: invitation.role },
+          entityId: membership.id,
+          meta: { role: membership.role },
         },
       });
 
       await this.projectsService.recalculateWipLimits(projectId);
-
-      return activeMember;
-    } else {
-      await this.prisma.projectMember.delete({
-        where: { id: invitation.id },
-      });
-      return null;
+      return membership;
     }
+
+    return null;
   }
 
   async updateRole(input: UpdateProjectMemberInput, requesterId: string) {
