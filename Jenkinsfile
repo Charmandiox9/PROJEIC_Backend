@@ -29,6 +29,7 @@ pipeline {
 
         stage('Desplegar') {
             steps {
+                // 1. Detener con compose
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
@@ -38,6 +39,7 @@ pipeline {
                 -f docker-compose.yml stop nginx backend || true
                 '''
 
+                // 2. Eliminar con compose
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
@@ -47,7 +49,12 @@ pipeline {
                 -f docker-compose.yml rm -f nginx backend || true
                 '''
 
-                // --no-deps evita que compose intente recrear "db"
+                // 3. Forzar eliminación directa por nombre (garantiza limpieza real)
+                sh '''
+                docker rm -f backend nginx || true
+                '''
+
+                // 4. Levantar nueva versión
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
