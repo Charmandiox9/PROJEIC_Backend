@@ -29,27 +29,26 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Detenemos tanto al hijo (nginx) como al padre (backend) juntos
+                // 1. Detenemos padre e hijo de forma segura
                 sh '''
                 docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop nginx backend || true
                 '''
 
-                // 2. Los borramos a ambos
+                // 2. Borramos los contenedores viejos
                 sh '''
                 docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f nginx backend || true
                 '''
 
-                // 3. Levantamos AMBOS de nuevo, pero bloqueando que toquen a la BD o a Prometheus
+                // 3. Levantamos la nueva versión. ¡Nota que NO usamos --no-deps!
                 sh '''
                 docker run --rm \
                   -v /var/www/projeic:/var/www/projeic \
                   -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                   -w /var/www/projeic \
                   docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d --force-recreate --no-deps backend nginx
+                  -f docker-compose.yml up -d backend nginx
                 '''
                 
-                // 4. Limpieza de disco
                 sh 'docker image prune -f || true'
             }
         }
