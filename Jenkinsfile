@@ -29,13 +29,15 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Detener en orden correcto (los que dependen primero)
-                sh 'docker stop nginx frontend backend || true'
+                // Eliminar en orden estricto, uno por uno
+                sh 'docker stop nginx  || true'
+                sh 'docker rm -f nginx || true'
+                sh 'docker stop frontend  || true'
+                sh 'docker rm -f frontend || true'
+                sh 'docker stop backend  || true'
+                sh 'docker rm -f backend || true'
 
-                // 2. Eliminar en el mismo orden
-                sh 'docker rm -f nginx frontend backend || true'
-
-                // 3. Levantar nueva versión
+                // Levantar nueva versión
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
