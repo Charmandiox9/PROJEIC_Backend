@@ -29,26 +29,34 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Detenemos padre e hijo de forma segura
-                sh '''
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml stop nginx backend || true
-                '''
-
-                // 2. Borramos los contenedores viejos
-                sh '''
-                docker run --rm -v /var/www/projeic:/var/www/projeic -v /run/user/1000/podman/podman.sock:/var/run/docker.sock -w /var/www/projeic docker.io/docker/compose:1.29.2 -f docker-compose.yml rm -f nginx backend || true
-                '''
-
-                // 3. Levantamos la nueva versión. ¡Nota que NO usamos --no-deps!
                 sh '''
                 docker run --rm \
-                  -v /var/www/projeic:/var/www/projeic \
-                  -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-                  -w /var/www/projeic \
-                  docker.io/docker/compose:1.29.2 \
-                  -f docker-compose.yml up -d backend nginx
+                -v /var/www/projeic:/var/www/projeic \
+                -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+                -w /var/www/projeic \
+                docker.io/docker/compose:1.29.2 \
+                -f docker-compose.yml stop nginx backend || true
                 '''
-                
+
+                sh '''
+                docker run --rm \
+                -v /var/www/projeic:/var/www/projeic \
+                -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+                -w /var/www/projeic \
+                docker.io/docker/compose:1.29.2 \
+                -f docker-compose.yml rm -f nginx backend || true
+                '''
+
+                // --no-deps evita que compose intente recrear "db"
+                sh '''
+                docker run --rm \
+                -v /var/www/projeic:/var/www/projeic \
+                -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
+                -w /var/www/projeic \
+                docker.io/docker/compose:1.29.2 \
+                -f docker-compose.yml up -d --no-deps backend nginx
+                '''
+
                 sh 'docker image prune -f || true'
             }
         }
