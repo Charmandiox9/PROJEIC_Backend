@@ -29,18 +29,20 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Forzar eliminación directa de los contenedores que se van a recrear
-                sh 'docker stop backend nginx || true'
-                sh 'docker rm -f backend nginx || true'
+                // 1. Detener en orden correcto (los que dependen primero)
+                sh 'docker stop nginx frontend backend || true'
 
-                // 2. Levantar nueva versión sin tocar db, cloudflared, jenkins, frontend
+                // 2. Eliminar en el mismo orden
+                sh 'docker rm -f nginx frontend backend || true'
+
+                // 3. Levantar nueva versión
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
                 -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                 -w /var/www/projeic \
                 docker.io/docker/compose:1.29.2 \
-                -f docker-compose.yml up -d --no-deps backend nginx frontend
+                -f docker-compose.yml up -d --no-deps backend frontend nginx
                 '''
 
                 sh 'docker image prune -f || true'
