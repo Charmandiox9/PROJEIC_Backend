@@ -29,39 +29,18 @@ pipeline {
 
         stage('Desplegar') {
             steps {
-                // 1. Detener con compose
+                // 1. Forzar eliminación directa de los contenedores que se van a recrear
+                sh 'docker stop backend nginx || true'
+                sh 'docker rm -f backend nginx || true'
+
+                // 2. Levantar nueva versión sin tocar db, cloudflared, jenkins, frontend
                 sh '''
                 docker run --rm \
                 -v /var/www/projeic:/var/www/projeic \
                 -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
                 -w /var/www/projeic \
                 docker.io/docker/compose:1.29.2 \
-                -f docker-compose.yml stop nginx backend || true
-                '''
-
-                // 2. Eliminar con compose
-                sh '''
-                docker run --rm \
-                -v /var/www/projeic:/var/www/projeic \
-                -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-                -w /var/www/projeic \
-                docker.io/docker/compose:1.29.2 \
-                -f docker-compose.yml rm -f nginx backend || true
-                '''
-
-                // 3. Forzar eliminación directa por nombre (garantiza limpieza real)
-                sh '''
-                docker rm -f backend nginx || true
-                '''
-
-                // 4. Levantar nueva versión
-                sh '''
-                docker run --rm \
-                -v /var/www/projeic:/var/www/projeic \
-                -v /run/user/1000/podman/podman.sock:/var/run/docker.sock \
-                -w /var/www/projeic \
-                docker.io/docker/compose:1.29.2 \
-                -f docker-compose.yml up -d --no-deps backend nginx
+                -f docker-compose.yml up -d --no-deps backend nginx frontend
                 '''
 
                 sh 'docker image prune -f || true'
