@@ -53,6 +53,7 @@ export class ProjectsRepository {
             professors: true,
           },
         },
+        repositories: true,
       },
     });
   }

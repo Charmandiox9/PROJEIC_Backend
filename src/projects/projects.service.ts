@@ -72,6 +72,18 @@ export class ProjectsService {
       members: {
         create: initialMembers,
       },
+
+      repositories:
+        input.repositories && input.repositories.length > 0
+          ? {
+              create: input.repositories.map((repo) => ({
+                name: repo.name,
+                owner: repo.owner,
+                repoName: repo.repoName,
+                url: repo.url ?? null,
+              })),
+            }
+          : undefined,
     };
 
     const newProject = await this.repository.create(data);
@@ -216,7 +228,7 @@ export class ProjectsService {
       throw new NotFoundException(`Project with id "${input.id}" not found`);
     }
 
-    const { id, assignMeAsLeader, ...rest } = input;
+    const { id, assignMeAsLeader, repositories, ...rest } = input;
 
     const data: Record<string, any> = Object.fromEntries(
       Object.entries(rest).filter(([, v]) => v !== undefined),
@@ -271,6 +283,17 @@ export class ProjectsService {
 
     if (membersUpserts.length > 0) {
       data.members = { upsert: membersUpserts };
+    }
+
+    if (repositories !== undefined) {
+      data.repositories = {
+        deleteMany: {},
+        create: repositories.map((repo) => ({
+          name: repo.name,
+          owner: repo.owner,
+          repoName: repo.repoName,
+        })),
+      };
     }
 
     if (Object.keys(data).length === 0) {
@@ -334,23 +357,10 @@ export class ProjectsService {
       };
     }
 
-    if (
-      input.githubOwner !== undefined &&
-      input.githubOwner !== oldProject.githubOwner
-    ) {
-      changes.githubOwner = {
-        from: oldProject.githubOwner || 'Desvinculado',
-        to: input.githubOwner || 'Desvinculado',
-      };
-    }
-
-    if (
-      input.githubRepo !== undefined &&
-      input.githubRepo !== oldProject.githubRepo
-    ) {
-      changes.githubRepo = {
-        from: oldProject.githubRepo || 'Desvinculado',
-        to: input.githubRepo || 'Desvinculado',
+    if (repositories !== undefined) {
+      changes.repositories = {
+        from: 'Configuración anterior',
+        to: `${repositories.length} repositorio(s) vinculados`,
       };
     }
 

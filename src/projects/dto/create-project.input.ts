@@ -10,12 +10,12 @@ import {
   MinLength,
 } from 'class-validator';
 
-// Importar desde common/enums garantiza que registerEnumType() ya corrió
 import {
   ProjectStatus,
   ProjectMethodology,
   ProjectMode,
 } from '../../common/enums/project.enums';
+import { RepositoryInput } from '../entities/repository.input';
 
 @InputType({ description: 'Data required to create a new project' })
 export class CreateProjectInput {
@@ -90,4 +90,8 @@ export class CreateProjectInput {
   @IsEnum(ProjectMode)
   @IsOptional()
   mode?: ProjectMode;
+
+  @Field(() => [RepositoryInput], { nullable: true })
+  @IsOptional()
+  repositories?: RepositoryInput[];
 }

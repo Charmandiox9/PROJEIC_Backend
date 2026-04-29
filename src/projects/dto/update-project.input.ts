@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { CreateProjectInput } from './create-project.input';
 import { ProjectMode } from 'src/common/enums/project.enums';
+import { RepositoryInput } from '../entities/repository.input';
 
 @InputType({
   description: 'Data to update an existing project (all fields optional)',
@@ -50,13 +51,7 @@ export class UpdateProjectInput extends PartialType(CreateProjectInput) {
   @IsOptional()
   mode?: ProjectMode;
 
-  @Field({ nullable: true })
-  @IsString()
+  @Field(() => [RepositoryInput], { nullable: true })
   @IsOptional()
-  githubOwner?: string;
-
-  @Field({ nullable: true })
-  @IsString()
-  @IsOptional()
-  githubRepo?: string;
+  repositories?: RepositoryInput[];
 }

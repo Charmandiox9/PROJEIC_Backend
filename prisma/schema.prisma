@@ -155,8 +155,7 @@ model Project {
   mode            ProjectMode      @default(CLASSIC)
   expectedResults ExpectedResult[]
 
-  githubOwner String?
-  githubRepo  String?
+  repositories    Repository[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -455,4 +454,20 @@ model ProjectInvitation {
   @@unique([email, projectId]) 
   @@index([token])
   @@map("project_invitations")
+}
+
+model Repository {
+  id        String   @id @default(cuid())
+  name      String   // Nombre para identificarlo en la UI (ej: "Backend NestJS")
+  owner     String   // El githubOwner
+  repoName  String   // El githubRepo
+  url       String?  // Opcional: URL completa para acceso rápido
+  
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("repositories")
 }

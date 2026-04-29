@@ -121,6 +121,7 @@ input CreateProjectInput {
   """Project display name (3–100 chars)"""
   name: String!
   professorId: String
+  repositories: [RepositoryInput!]
 
   """Initial status (defaults to ACTIVE)"""
   status: ProjectStatus = ACTIVE
@@ -298,8 +299,6 @@ type ProjectEntity {
 
   """Optional long description"""
   description: String
-  githubOwner: String
-  githubRepo: String
 
   """Unique identifier (cuid)"""
   id: ID!
@@ -321,6 +320,7 @@ type ProjectEntity {
 
   """Display name of the project"""
   name: String!
+  repositories: [RepositoryEntity!]
 
   """Current lifecycle status"""
   status: ProjectStatus!
@@ -462,6 +462,21 @@ type Query {
   tasksByProject(projectId: String!, sprintId: String): [Task!]!
 }
 
+type RepositoryEntity {
+  id: ID!
+  name: String!
+  owner: String!
+  repoName: String!
+  url: String
+}
+
+input RepositoryInput {
+  name: String!
+  owner: String!
+  repoName: String!
+  url: String
+}
+
 """Estado de un Resultado Esperado"""
 enum ResultStatus {
   COMPLETED
@@ -541,8 +556,6 @@ input UpdateProjectInput {
   assignMeAsLeader: Boolean
   color: String
   description: String
-  githubOwner: String
-  githubRepo: String
 
   """ID of the project to update"""
   id: ID!
@@ -554,6 +567,7 @@ input UpdateProjectInput {
   mode: ProjectMode
   name: String
   professorId: String
+  repositories: [RepositoryInput!]
 
   """Initial status (defaults to ACTIVE)"""
   status: ProjectStatus = ACTIVE

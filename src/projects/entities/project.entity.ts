@@ -118,13 +118,24 @@ export class ProjectEntity {
   @IsOptional()
   mode?: ProjectMode;
 
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  githubOwner?: string;
+  @Field(() => [RepositoryEntity], { nullable: true })
+  repositories?: RepositoryEntity[];
+}
+
+@ObjectType()
+export class RepositoryEntity {
+  @Field(() => ID)
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  owner: string;
+
+  @Field()
+  repoName: string;
 
   @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  githubRepo?: string;
+  url?: string;
 }
