@@ -53,8 +53,8 @@ export class ProjectsService {
     ];
 
     const data = {
-      name: input.name,
-      description: input.description ?? null,
+      name: input.name as any,
+      description: input.description ? (input.description as any) : undefined,
       color: input.color ?? '#3B82F6',
       status: input.status ?? ProjectStatus.ACTIVE,
 
@@ -320,7 +320,10 @@ export class ProjectsService {
 
     const changes: Record<string, { from: any; to: any }> = {};
 
-    if (input.name !== undefined && input.name !== oldProject.name) {
+    if (
+      input.name !== undefined &&
+      JSON.stringify(input.name) !== JSON.stringify(oldProject.name)
+    ) {
       changes.name = { from: oldProject.name, to: input.name };
     }
     if (input.status !== undefined && input.status !== oldProject.status) {
@@ -328,11 +331,12 @@ export class ProjectsService {
     }
     if (
       input.description !== undefined &&
-      input.description !== oldProject.description
+      JSON.stringify(input.description) !==
+        JSON.stringify(oldProject.description)
     ) {
       changes.description = {
-        from: oldProject.description || 'Sin descripción',
-        to: input.description || 'Sin descripción',
+        from: oldProject.description || { es: 'Sin descripción' },
+        to: input.description || { es: 'Sin descripción' },
       };
     }
     if (input.color !== undefined && input.color !== oldProject.color) {

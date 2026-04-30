@@ -141,8 +141,8 @@ model User {
 
 model Project {
   id          String             @id @default(cuid())
-  name        String
-  description String?
+  name        Json
+  description Json?
   color       String             @default("#3B82F6")
   status      ProjectStatus      @default(ACTIVE)
   methodology ProjectMethodology @default(KANBAN)

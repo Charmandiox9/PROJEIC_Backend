@@ -108,7 +108,7 @@ input CreateProjectInput {
   color: String = "#3B82F6"
 
   """Optional description (max 500 chars)"""
-  description: String
+  description: LocalizedStringInput
   isInstitutional: Boolean
 
   """Make project visible to everyone"""
@@ -119,7 +119,7 @@ input CreateProjectInput {
   mode: ProjectMode
 
   """Project display name (3–100 chars)"""
-  name: String!
+  name: LocalizedStringInput!
   professorId: String
   repositories: [RepositoryInput!]
 
@@ -206,6 +206,18 @@ type GithubCommitHistory {
   commits: [CommitNode!]!
   stats: CommitStats!
   totalCommits: Int!
+}
+
+type LocalizedString {
+  en: String
+  es: String!
+  pt: String
+}
+
+input LocalizedStringInput {
+  en: String
+  es: String!
+  pt: String
 }
 
 enum MemberStatus {
@@ -298,7 +310,7 @@ type ProjectEntity {
   createdAt: DateTime!
 
   """Optional long description"""
-  description: String
+  description: LocalizedString
 
   """Unique identifier (cuid)"""
   id: ID!
@@ -319,7 +331,7 @@ type ProjectEntity {
   myRole: ProjectRole
 
   """Display name of the project"""
-  name: String!
+  name: LocalizedString!
   repositories: [RepositoryEntity!]
 
   """Current lifecycle status"""
@@ -555,22 +567,21 @@ input UpdateBoardInput {
 input UpdateProjectInput {
   assignMeAsLeader: Boolean
   color: String
-  description: String
+
+  """Optional description"""
+  description: LocalizedStringInput
 
   """ID of the project to update"""
   id: ID!
   isInstitutional: Boolean
   isPublic: Boolean
-
-  """Methodology (defaults to KANBAN)"""
-  methodology: ProjectMethodology = KANBAN
+  methodology: ProjectMethodology
   mode: ProjectMode
-  name: String
-  professorId: String
-  repositories: [RepositoryInput!]
 
-  """Initial status (defaults to ACTIVE)"""
-  status: ProjectStatus = ACTIVE
+  """Display name of the project"""
+  name: LocalizedStringInput
+  repositories: [RepositoryInput!]
+  status: ProjectStatus
   subjectId: String
 }
 

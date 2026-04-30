@@ -84,9 +84,9 @@ export class ProjectMembersService {
 
       await this.emailService.sendProjectInvitation(
         input.email,
-        project.name,
+        (project.name as Record<string, string>)?.es || 'Proyecto',
         inviteUrl,
-        project.description || '',
+        (project.description as Record<string, string>)?.es || '',
         project.status,
         project.methodology,
         project.isInstitutional,
@@ -156,9 +156,9 @@ export class ProjectMembersService {
     const inAppUrl = `${frontendUrl}/projeic/misc/proyectos/${input.projectId}/invites`;
     await this.emailService.sendProjectInvitation(
       input.email,
-      project.name,
+      (project.name as Record<string, string>)?.es || 'Proyecto',
       inAppUrl,
-      project.description || '',
+      (project.description as Record<string, string>)?.es || '',
       project.status,
       project.methodology,
       project.isInstitutional,

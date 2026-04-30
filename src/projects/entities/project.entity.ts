@@ -9,6 +9,7 @@ import {
 import '../../common/enums/project.enums';
 import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { SubjectEntity } from '../../subjects/entities/subject.entity';
+import { LocalizedStringDto } from '../../common/dto/localized-string.dto';
 
 registerEnumType(MemberStatus, { name: 'MemberStatus' });
 
@@ -52,13 +53,13 @@ export class ProjectEntity {
   id: string;
 
   @Field({ description: 'Display name of the project' })
-  name: string;
+  name: LocalizedStringDto;
 
-  @Field(() => String, {
+  @Field(() => LocalizedStringDto, {
     nullable: true,
     description: 'Optional long description',
   })
-  description: string | null;
+  description: LocalizedStringDto | null;
 
   @Field({ description: 'Hex color used for UI theming (e.g. #3B82F6)' })
   color: string;

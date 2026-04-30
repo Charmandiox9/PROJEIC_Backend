@@ -6,9 +6,9 @@ import {
   IsEnum,
   IsBoolean,
   IsHexColor,
-  MaxLength,
-  MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 import {
   ProjectStatus,
@@ -16,24 +16,24 @@ import {
   ProjectMode,
 } from '../../common/enums/project.enums';
 import { RepositoryInput } from '../entities/repository.input';
+import { LocalizedStringDto } from '../../common/dto/localized-string.dto';
 
 @InputType({ description: 'Data required to create a new project' })
 export class CreateProjectInput {
   @Field({ description: 'Project display name (3–100 chars)' })
-  @IsString()
   @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(100)
-  name: string;
+  @ValidateNested()
+  @Type(() => LocalizedStringDto)
+  name: LocalizedStringDto;
 
-  @Field(() => String, {
+  @Field(() => LocalizedStringDto, {
     nullable: true,
     description: 'Optional description (max 500 chars)',
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  description?: string;
+  @ValidateNested()
+  @Type(() => LocalizedStringDto)
+  description?: LocalizedStringDto;
 
   @Field({
     nullable: true,
