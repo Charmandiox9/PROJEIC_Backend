@@ -599,6 +599,38 @@ export class TasksService {
         workCompletedPercentage,
       };
 
+      const completionTrendMap = new Map<
+        string,
+        { date: string; count: number }
+      >();
+
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        completionTrendMap.set(dateStr, { date: dateStr, count: 0 });
+      }
+
+      const doneTasksRecent = await this.prisma.task.findMany({
+        where: {
+          projectId,
+          status: 'DONE',
+          updatedAt: {
+            gte: new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000),
+          },
+        },
+        select: { updatedAt: true },
+      });
+
+      doneTasksRecent.forEach((task) => {
+        const dateStr = task.updatedAt.toISOString().split('T')[0];
+        if (completionTrendMap.has(dateStr)) {
+          completionTrendMap.get(dateStr)!.count += 1;
+        }
+      });
+
+      const dailyCompletions = Array.from(completionTrendMap.values());
+
       return {
         totalTasks,
         completedTasks,
@@ -611,6 +643,7 @@ export class TasksService {
         activityTrend,
         burndownData,
         projectRisk,
+        dailyCompletions,
       };
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);

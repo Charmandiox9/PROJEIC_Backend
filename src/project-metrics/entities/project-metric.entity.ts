@@ -35,6 +35,15 @@ export class ProjectRisk {
 }
 
 @ObjectType()
+export class DailyTaskCompletion {
+  @Field()
+  date: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
 export class ProjectMetrics {
   @Field(() => Int)
   totalTasks: number;
@@ -68,6 +77,9 @@ export class ProjectMetrics {
 
   @Field(() => ProjectRisk)
   projectRisk: ProjectRisk;
+
+  @Field(() => [DailyTaskCompletion])
+  dailyCompletions: DailyTaskCompletion[];
 }
 
 @ObjectType()

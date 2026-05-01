@@ -173,6 +173,11 @@ type DailySnapshotData {
   totalTasks: Int!
 }
 
+type DailyTaskCompletion {
+  count: Int!
+  date: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -383,6 +388,7 @@ type ProjectMetrics {
   activityTrend: [ActivityTrend!]!
   burndownData: [DailySnapshotData!]!
   completedTasks: Int!
+  dailyCompletions: [DailyTaskCompletion!]!
   inReviewTasks: Int!
   overdueTasksCount: Int!
   overdueTasksList: [Task!]!
