@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskInput } from './dto/create-task.input';
@@ -15,9 +16,11 @@ import {
   NotificationType,
 } from '@prisma/client';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
@@ -398,6 +401,8 @@ export class TasksService {
         tasksPerBoard,
         projectMembers,
         tasksByAssigneeAndStatus,
+        snapshots,
+        projectTimeline,
       ] = await Promise.all([
         this.prisma.task.count({ where: { projectId } }),
 
@@ -443,6 +448,17 @@ export class TasksService {
           by: ['assigneeId', 'status'],
           where: { projectId, assigneeId: { not: null } },
           _count: { id: true },
+        }),
+
+        this.prisma.projectDailySnapshot.findMany({
+          where: { projectId },
+          orderBy: { date: 'asc' },
+        }),
+
+        this.prisma.task.aggregate({
+          where: { projectId },
+          _min: { startDate: true, createdAt: true },
+          _max: { dueDate: true },
         }),
       ]);
 
@@ -522,6 +538,67 @@ export class TasksService {
       const activityTrend = Array.from(activityTrendMap.values());
       const totalActivity = logsLast7Days.length;
 
+      const burndownData = snapshots.map((snap) => ({
+        date: snap.date.toISOString().split('T')[0],
+        totalTasks: snap.totalTasks,
+        completedTasks: snap.completedTasks,
+        todoTasks: snap.todoTasks,
+        inProgressTasks: snap.inProgressTasks,
+      }));
+
+      let timeElapsedPercentage = 0;
+      let workCompletedPercentage =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      let riskLevel = 'UNKNOWN';
+      let riskMessage =
+        'No hay suficientes fechas límite (due dates) para calcular el riesgo.';
+      let riskScore = 0;
+
+      const startTime =
+        projectTimeline._min.startDate?.getTime() ||
+        projectTimeline._min.createdAt?.getTime();
+      const endTime = projectTimeline._max.dueDate?.getTime();
+      console.log(startTime, endTime);
+      const now = Date.now();
+
+      if (startTime && endTime && endTime > startTime) {
+        const totalDuration = endTime - startTime;
+        const elapsed = now - startTime;
+
+        timeElapsedPercentage = Math.max(
+          0,
+          Math.min(100, Math.round((elapsed / totalDuration) * 100)),
+        );
+
+        riskScore = timeElapsedPercentage - workCompletedPercentage;
+
+        if (timeElapsedPercentage >= 100 && workCompletedPercentage < 100) {
+          riskLevel = 'HIGH';
+          riskMessage =
+            'El tiempo límite ha expirado y el proyecto no está terminado.';
+        } else if (riskScore > 25) {
+          riskLevel = 'HIGH';
+          riskMessage =
+            'Peligro: El tiempo avanza mucho más rápido que el cierre de tareas.';
+        } else if (riskScore > 10) {
+          riskLevel = 'MEDIUM';
+          riskMessage =
+            'Precaución: El ritmo de trabajo está ligeramente atrasado respecto al calendario.';
+        } else {
+          riskLevel = 'LOW';
+          riskMessage =
+            'Excelente: El ritmo de trabajo es ideal para terminar a tiempo.';
+        }
+      }
+
+      const projectRisk = {
+        level: riskLevel,
+        score: riskScore,
+        message: riskMessage,
+        timeElapsedPercentage,
+        workCompletedPercentage,
+      };
+
       return {
         totalTasks,
         completedTasks,
@@ -532,6 +609,8 @@ export class TasksService {
         overdueTasksList,
         workload,
         activityTrend,
+        burndownData,
+        projectRisk,
       };
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);
@@ -649,6 +728,53 @@ export class TasksService {
           tagId: tag.id,
         },
       });
+    }
+  }
+
+  @Cron('59 23 * * *')
+  async takeDailyProjectSnapshots() {
+    this.logger.log(
+      'Iniciando captura de snapshots diarios de los proyectos...',
+    );
+
+    try {
+      const activeProjects = await this.prisma.project.findMany({
+        select: { id: true },
+      });
+
+      for (const project of activeProjects) {
+        const [total, done, todo, inProgress] = await Promise.all([
+          this.prisma.task.count({ where: { projectId: project.id } }),
+          this.prisma.task.count({
+            where: { projectId: project.id, status: 'DONE' },
+          }),
+          this.prisma.task.count({
+            where: {
+              projectId: project.id,
+              status: { in: ['TODO', 'BACKLOG'] },
+            },
+          }),
+          this.prisma.task.count({
+            where: { projectId: project.id, status: 'IN_PROGRESS' },
+          }),
+        ]);
+
+        await this.prisma.projectDailySnapshot.create({
+          data: {
+            projectId: project.id,
+            totalTasks: total,
+            completedTasks: done,
+            todoTasks: todo,
+            inProgressTasks: inProgress,
+          },
+        });
+      }
+
+      this.logger.log(
+        `Snapshots creados exitosamente para ${activeProjects.length} proyectos.`,
+      );
+    } catch (error) {
+      this.logger.error('Error al tomar snapshots diarios', error);
     }
   }
 }
