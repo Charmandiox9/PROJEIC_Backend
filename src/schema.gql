@@ -14,6 +14,11 @@ type ActivityLog {
   user: User!
 }
 
+type ActivityTrend {
+  count: Int!
+  date: String!
+}
+
 input AddProjectMemberInput {
   """Correo del usuario que quieres invitar"""
   email: String!
@@ -367,6 +372,7 @@ enum ProjectMethodology {
 
 type ProjectMetrics {
   activityLast7Days: Int!
+  activityTrend: [ActivityTrend!]!
   completedTasks: Int!
   inReviewTasks: Int!
   overdueTasksCount: Int!

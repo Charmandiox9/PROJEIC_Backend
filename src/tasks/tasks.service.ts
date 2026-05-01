@@ -393,7 +393,7 @@ export class TasksService {
         completedTasks,
         inReviewTasks,
         overdueTasksList,
-        activityLast7Days,
+        logsLast7Days,
         boards,
         tasksPerBoard,
         projectMembers,
@@ -418,8 +418,9 @@ export class TasksService {
           take: 5,
         }),
 
-        this.prisma.activityLog.count({
+        this.prisma.activityLog.findMany({
           where: { projectId, createdAt: { gte: sevenDaysAgo } },
+          select: { createdAt: true },
         }),
 
         this.prisma.board.findMany({
@@ -455,7 +456,16 @@ export class TasksService {
         };
       });
 
-      const workloadMap = new Map();
+      const workloadMap = new Map<
+        string,
+        {
+          memberName: string;
+          todo: number;
+          inProgress: number;
+          inReview: number;
+          done: number;
+        }
+      >();
 
       projectMembers.forEach((member) => {
         workloadMap.set(member.user.id, {
@@ -468,6 +478,8 @@ export class TasksService {
       });
 
       tasksByAssigneeAndStatus.forEach((group) => {
+        if (!group.assigneeId) return;
+
         const userWorkload = workloadMap.get(group.assigneeId);
 
         if (userWorkload) {
@@ -488,15 +500,38 @@ export class TasksService {
 
       const workload = Array.from(workloadMap.values());
 
+      const activityTrendMap = new Map<
+        string,
+        { date: string; count: number }
+      >();
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        activityTrendMap.set(dateStr, { date: dateStr, count: 0 });
+      }
+
+      logsLast7Days.forEach((log: { createdAt: Date }) => {
+        const dateStr = log.createdAt.toISOString().split('T')[0];
+        if (activityTrendMap.has(dateStr)) {
+          activityTrendMap.get(dateStr)!.count += 1;
+        }
+      });
+
+      const activityTrend = Array.from(activityTrendMap.values());
+      const totalActivity = logsLast7Days.length;
+
       return {
         totalTasks,
         completedTasks,
         overdueTasksCount: overdueTasksList.length,
         inReviewTasks,
-        activityLast7Days,
+        activityLast7Days: totalActivity,
         tasksByColumn,
         overdueTasksList,
         workload,
+        activityTrend,
       };
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);

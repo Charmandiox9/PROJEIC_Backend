@@ -41,6 +41,9 @@ export class ProjectMetrics {
 
   @Field(() => [MemberWorkload])
   workload: MemberWorkload[];
+
+  @Field(() => [ActivityTrend])
+  activityTrend: ActivityTrend[];
 }
 
 @ObjectType()
@@ -59,4 +62,13 @@ export class MemberWorkload {
 
   @Field(() => Int)
   done: number;
+}
+
+@ObjectType()
+export class ActivityTrend {
+  @Field()
+  date: string;
+
+  @Field(() => Int)
+  count: number;
 }

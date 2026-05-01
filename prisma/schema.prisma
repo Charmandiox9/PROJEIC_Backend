@@ -157,6 +157,8 @@ model Project {
 
   repositories    Repository[]
 
+  dailySnapshots ProjectDailySnapshot[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -470,4 +472,21 @@ model Repository {
   updatedAt DateTime @updatedAt
 
   @@map("repositories")
+}
+
+model ProjectDailySnapshot {
+  id              String   @id @default(cuid())
+  date            DateTime @default(now())
+  
+  // Los datos de la "fotografía"
+  totalTasks      Int
+  completedTasks  Int
+  todoTasks       Int
+  inProgressTasks Int
+
+  // Relación con el proyecto
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, date])
 }
