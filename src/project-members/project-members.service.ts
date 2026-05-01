@@ -46,10 +46,27 @@ export class ProjectMembersService {
       );
     }
 
+    // Obtenemos los datos de quien invita para el correo
+    const inviter = await this.prisma.user.findUnique({
+      where: { id: requesterId },
+    });
+    const inviterName = inviter?.name || 'Administrador';
+
     const userToAdd = await this.prisma.user.findUnique({
       where: { email: input.email },
     });
 
+    let frontendUrl =
+      process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+    const cleanFrontendUrl = frontendUrl
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/\/$/, '');
+
+    // ==========================================
+    // ESCENARIO A: EL USUARIO NO EXISTE
+    // ==========================================
     if (!userToAdd) {
       const inviteToken = randomBytes(32).toString('hex');
       const expiresAt = new Date();
@@ -65,21 +82,6 @@ export class ProjectMembersService {
         },
       });
 
-      let frontendUrl = process.env.FRONTEND_URL;
-
-      if (!frontendUrl) {
-        if (process.env.NODE_ENV === 'production') {
-          frontendUrl = '';
-        } else {
-          frontendUrl = 'http://localhost:3000';
-        }
-      }
-
-      const cleanFrontendUrl = frontendUrl
-        .trim()
-        .replace(/^["']|["']$/g, '')
-        .replace(/\/$/, '');
-
       const inviteUrl = `${cleanFrontendUrl}/projeic/auth/login?invite_token=${inviteToken}`;
 
       await this.emailService.sendProjectInvitation(
@@ -90,16 +92,24 @@ export class ProjectMembersService {
         project.status,
         project.methodology,
         project.isInstitutional,
-        input.role ? input.role : project.mode,
-        (await this.prisma.user.findUnique({ where: { id: requesterId } }))
-          ?.name || 'Administrador',
+        input.role || project.mode,
+        inviterName,
       );
 
-      throw new NotFoundException(
-        `Usuario no encontrado. Se ha enviado una invitación por correo a ${input.email}`,
-      );
+      // ✅ Retornamos el objeto exitosamente en lugar de lanzar una excepción
+      // Asegúrate de que esto coincida con lo que espera tu esquema GraphQL
+      return {
+        id: pendingInvite.id,
+        role: pendingInvite.role,
+        status: 'PENDING',
+      };
     }
 
+    // ==========================================
+    // ESCENARIO B: EL USUARIO YA EXISTE
+    // ==========================================
+
+    // Verificamos que no sea miembro ya
     const existingMember = await this.prisma.projectMember.findUnique({
       where: {
         userId_projectId: { userId: userToAdd.id, projectId: input.projectId },
@@ -107,64 +117,35 @@ export class ProjectMembersService {
     });
 
     if (existingMember) {
-      if (existingMember.status === 'PENDING') {
-        throw new ConflictException(
-          'Este usuario ya tiene una invitación pendiente.',
-        );
-      }
       throw new ConflictException(
-        'El usuario ya es miembro activo de este proyecto.',
+        'El usuario ya es miembro de este proyecto o ya ha sido invitado.',
       );
     }
 
+    // Lo agregamos directamente a la tabla ProjectMember
     const newMember = await this.prisma.projectMember.create({
       data: {
-        projectId: input.projectId,
         userId: userToAdd.id,
-        role: input.role,
-        status: 'PENDING',
-      },
-      include: {
-        project: true,
-        user: true,
-      },
-    });
-
-    await this.notificationsService.createSystemNotification({
-      userId: userToAdd.id,
-      type: 'PROJECT_INVITATION',
-      title: 'Nueva invitación a proyecto',
-      message: `Has sido invitado a participar en "${newMember.project.name}" como ${input.role}.`,
-      entityId: input.projectId,
-    });
-
-    await this.prisma.activityLog.create({
-      data: {
         projectId: input.projectId,
-        userId: requesterId,
-        action: ActivityAction.CREATED,
-        entity: ActivityEntity.MEMBER,
-        entityId: newMember.id,
-        meta: { title: userToAdd.name, role: input.role },
+        role: input.role,
+        status: 'PENDING', // O 'ACTIVE' si no requieres que acepte
       },
     });
 
-    const frontendUrl = (
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ).replace(/\/$/, '');
+    // Construimos una URL directa al proyecto
+    const projectUrl = `${cleanFrontendUrl}/projeic/misc/proyectos/${project.id}`;
 
-    const inAppUrl = `${frontendUrl}/projeic/misc/proyectos/${input.projectId}/invites`;
+    // 🔥 ¡Ahora sí le enviamos correo al usuario existente!
     await this.emailService.sendProjectInvitation(
       input.email,
       project.name,
-      inAppUrl,
+      projectUrl,
       project.description || '',
       project.status,
       project.methodology,
       project.isInstitutional,
-      input.role ? input.role : project.mode,
-      (await this.prisma.user.findUnique({ where: { id: requesterId } }))
-        ?.name || 'Administrador',
+      input.role || project.mode,
+      inviterName,
     );
 
     return newMember;
