@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Resend } from 'resend';
 
 @Injectable()
@@ -7,7 +7,17 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      this.logger.error(
+        '❌ CUIDADO: RESEND_API_KEY no está configurada en el entorno de producción.',
+      );
+    }
+    this.resend = new Resend(apiKey);
+  }
+
+  onModuleInit() {
+    this.logger.log('✅ EmailService inicializado. API de Resend lista.');
   }
 
   async sendProjectInvitation(
@@ -22,7 +32,9 @@ export class EmailService {
     inviterName?: string,
   ) {
     try {
-      const data = await this.resend.emails.send({
+      this.logger.log(`Intentando enviar correo a: ${toEmail}...`);
+
+      const { data, error } = await this.resend.emails.send({
         from: 'PROJEIC <notificaciones@danielduran.engineer>',
         to: [toEmail],
         subject: `Invitación para unirte a ${projectName} en PROJEIC`,
@@ -177,11 +189,26 @@ export class EmailService {
         `,
       });
 
-      this.logger.log(`Invitación enviada exitosamente a ${toEmail}`);
+      if (error) {
+        this.logger.error(
+          `❌ Error interno de Resend: ${error.message}`,
+          error,
+        );
+        throw new Error(`Resend rechazó el correo: ${error.message}`);
+      }
+
+      this.logger.log(
+        `✅ Invitación enviada exitosamente a ${toEmail}. ID del correo: ${data?.id}`,
+      );
       return { success: true, data };
     } catch (error) {
-      this.logger.error(`Error al enviar invitación a ${toEmail}`, error);
-      throw new Error('No se pudo enviar el correo de invitación');
+      this.logger.error(
+        `❌ Excepción al enviar invitación a ${toEmail}: ${error.message}`,
+        error.stack,
+      );
+      throw new Error(
+        'No se pudo enviar el correo de invitación. Revisa los logs del servidor.',
+      );
     }
   }
 }
