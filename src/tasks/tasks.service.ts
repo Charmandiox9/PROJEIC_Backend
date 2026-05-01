@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskInput } from './dto/create-task.input';
@@ -15,9 +16,11 @@ import {
   NotificationType,
 } from '@prisma/client';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
@@ -393,9 +396,13 @@ export class TasksService {
         completedTasks,
         inReviewTasks,
         overdueTasksList,
-        activityLast7Days,
+        logsLast7Days,
         boards,
         tasksPerBoard,
+        projectMembers,
+        tasksByAssigneeAndStatus,
+        snapshots,
+        projectTimeline,
       ] = await Promise.all([
         this.prisma.task.count({ where: { projectId } }),
 
@@ -416,8 +423,9 @@ export class TasksService {
           take: 5,
         }),
 
-        this.prisma.activityLog.count({
+        this.prisma.activityLog.findMany({
           where: { projectId, createdAt: { gte: sevenDaysAgo } },
+          select: { createdAt: true },
         }),
 
         this.prisma.board.findMany({
@@ -429,6 +437,28 @@ export class TasksService {
           by: ['boardId'],
           where: { projectId, boardId: { not: null } },
           _count: { id: true },
+        }),
+
+        this.prisma.projectMember.findMany({
+          where: { projectId },
+          include: { user: { select: { id: true, name: true } } },
+        }),
+
+        this.prisma.task.groupBy({
+          by: ['assigneeId', 'status'],
+          where: { projectId, assigneeId: { not: null } },
+          _count: { id: true },
+        }),
+
+        this.prisma.projectDailySnapshot.findMany({
+          where: { projectId },
+          orderBy: { date: 'asc' },
+        }),
+
+        this.prisma.task.aggregate({
+          where: { projectId },
+          _min: { startDate: true, createdAt: true },
+          _max: { dueDate: true },
         }),
       ]);
 
@@ -442,14 +472,178 @@ export class TasksService {
         };
       });
 
+      const workloadMap = new Map<
+        string,
+        {
+          memberName: string;
+          todo: number;
+          inProgress: number;
+          inReview: number;
+          done: number;
+        }
+      >();
+
+      projectMembers.forEach((member) => {
+        workloadMap.set(member.user.id, {
+          memberName: member.user.name,
+          todo: 0,
+          inProgress: 0,
+          inReview: 0,
+          done: 0,
+        });
+      });
+
+      tasksByAssigneeAndStatus.forEach((group) => {
+        if (!group.assigneeId) return;
+
+        const userWorkload = workloadMap.get(group.assigneeId);
+
+        if (userWorkload) {
+          if (
+            group.status === TaskStatus.TODO ||
+            group.status === TaskStatus.BACKLOG
+          ) {
+            userWorkload.todo += group._count.id;
+          } else if (group.status === TaskStatus.IN_PROGRESS) {
+            userWorkload.inProgress += group._count.id;
+          } else if (group.status === TaskStatus.IN_REVIEW) {
+            userWorkload.inReview += group._count.id;
+          } else if (group.status === TaskStatus.DONE) {
+            userWorkload.done += group._count.id;
+          }
+        }
+      });
+
+      const workload = Array.from(workloadMap.values());
+
+      const activityTrendMap = new Map<
+        string,
+        { date: string; count: number }
+      >();
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        activityTrendMap.set(dateStr, { date: dateStr, count: 0 });
+      }
+
+      logsLast7Days.forEach((log: { createdAt: Date }) => {
+        const dateStr = log.createdAt.toISOString().split('T')[0];
+        if (activityTrendMap.has(dateStr)) {
+          activityTrendMap.get(dateStr)!.count += 1;
+        }
+      });
+
+      const activityTrend = Array.from(activityTrendMap.values());
+      const totalActivity = logsLast7Days.length;
+
+      const burndownData = snapshots.map((snap) => ({
+        date: snap.date.toISOString().split('T')[0],
+        totalTasks: snap.totalTasks,
+        completedTasks: snap.completedTasks,
+        todoTasks: snap.todoTasks,
+        inProgressTasks: snap.inProgressTasks,
+      }));
+
+      let timeElapsedPercentage = 0;
+      let workCompletedPercentage =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      let riskLevel = 'UNKNOWN';
+      let riskMessage =
+        'No hay suficientes fechas límite (due dates) para calcular el riesgo.';
+      let riskScore = 0;
+
+      const startTime =
+        projectTimeline._min.startDate?.getTime() ||
+        projectTimeline._min.createdAt?.getTime();
+      const endTime = projectTimeline._max.dueDate?.getTime();
+      console.log(startTime, endTime);
+      const now = Date.now();
+
+      if (startTime && endTime && endTime > startTime) {
+        const totalDuration = endTime - startTime;
+        const elapsed = now - startTime;
+
+        timeElapsedPercentage = Math.max(
+          0,
+          Math.min(100, Math.round((elapsed / totalDuration) * 100)),
+        );
+
+        riskScore = timeElapsedPercentage - workCompletedPercentage;
+
+        if (timeElapsedPercentage >= 100 && workCompletedPercentage < 100) {
+          riskLevel = 'HIGH';
+          riskMessage =
+            'El tiempo límite ha expirado y el proyecto no está terminado.';
+        } else if (riskScore > 25) {
+          riskLevel = 'HIGH';
+          riskMessage =
+            'Peligro: El tiempo avanza mucho más rápido que el cierre de tareas.';
+        } else if (riskScore > 10) {
+          riskLevel = 'MEDIUM';
+          riskMessage =
+            'Precaución: El ritmo de trabajo está ligeramente atrasado respecto al calendario.';
+        } else {
+          riskLevel = 'LOW';
+          riskMessage =
+            'Excelente: El ritmo de trabajo es ideal para terminar a tiempo.';
+        }
+      }
+
+      const projectRisk = {
+        level: riskLevel,
+        score: riskScore,
+        message: riskMessage,
+        timeElapsedPercentage,
+        workCompletedPercentage,
+      };
+
+      const completionTrendMap = new Map<
+        string,
+        { date: string; count: number }
+      >();
+
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        completionTrendMap.set(dateStr, { date: dateStr, count: 0 });
+      }
+
+      const doneTasksRecent = await this.prisma.task.findMany({
+        where: {
+          projectId,
+          status: 'DONE',
+          updatedAt: {
+            gte: new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000),
+          },
+        },
+        select: { updatedAt: true },
+      });
+
+      doneTasksRecent.forEach((task) => {
+        const dateStr = task.updatedAt.toISOString().split('T')[0];
+        if (completionTrendMap.has(dateStr)) {
+          completionTrendMap.get(dateStr)!.count += 1;
+        }
+      });
+
+      const dailyCompletions = Array.from(completionTrendMap.values());
+
       return {
         totalTasks,
         completedTasks,
         overdueTasksCount: overdueTasksList.length,
         inReviewTasks,
-        activityLast7Days,
+        activityLast7Days: totalActivity,
         tasksByColumn,
         overdueTasksList,
+        workload,
+        activityTrend,
+        burndownData,
+        projectRisk,
+        dailyCompletions,
       };
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);
@@ -567,6 +761,53 @@ export class TasksService {
           tagId: tag.id,
         },
       });
+    }
+  }
+
+  @Cron('59 23 * * *')
+  async takeDailyProjectSnapshots() {
+    this.logger.log(
+      'Iniciando captura de snapshots diarios de los proyectos...',
+    );
+
+    try {
+      const activeProjects = await this.prisma.project.findMany({
+        select: { id: true },
+      });
+
+      for (const project of activeProjects) {
+        const [total, done, todo, inProgress] = await Promise.all([
+          this.prisma.task.count({ where: { projectId: project.id } }),
+          this.prisma.task.count({
+            where: { projectId: project.id, status: 'DONE' },
+          }),
+          this.prisma.task.count({
+            where: {
+              projectId: project.id,
+              status: { in: ['TODO', 'BACKLOG'] },
+            },
+          }),
+          this.prisma.task.count({
+            where: { projectId: project.id, status: 'IN_PROGRESS' },
+          }),
+        ]);
+
+        await this.prisma.projectDailySnapshot.create({
+          data: {
+            projectId: project.id,
+            totalTasks: total,
+            completedTasks: done,
+            todoTasks: todo,
+            inProgressTasks: inProgress,
+          },
+        });
+      }
+
+      this.logger.log(
+        `Snapshots creados exitosamente para ${activeProjects.length} proyectos.`,
+      );
+    } catch (error) {
+      this.logger.error('Error al tomar snapshots diarios', error);
     }
   }
 }

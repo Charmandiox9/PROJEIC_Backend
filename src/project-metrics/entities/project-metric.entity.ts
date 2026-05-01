@@ -17,6 +17,33 @@ export class ColumnMetric {
 }
 
 @ObjectType()
+export class ProjectRisk {
+  @Field()
+  level: string;
+
+  @Field(() => Int)
+  score: number;
+
+  @Field()
+  message: string;
+
+  @Field(() => Int)
+  timeElapsedPercentage: number;
+
+  @Field(() => Int)
+  workCompletedPercentage: number;
+}
+
+@ObjectType()
+export class DailyTaskCompletion {
+  @Field()
+  date: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
 export class ProjectMetrics {
   @Field(() => Int)
   totalTasks: number;
@@ -38,4 +65,64 @@ export class ProjectMetrics {
 
   @Field(() => [Task])
   overdueTasksList: Task[];
+
+  @Field(() => [MemberWorkload])
+  workload: MemberWorkload[];
+
+  @Field(() => [ActivityTrend])
+  activityTrend: ActivityTrend[];
+
+  @Field(() => [DailySnapshotData])
+  burndownData: DailySnapshotData[];
+
+  @Field(() => ProjectRisk)
+  projectRisk: ProjectRisk;
+
+  @Field(() => [DailyTaskCompletion])
+  dailyCompletions: DailyTaskCompletion[];
+}
+
+@ObjectType()
+export class MemberWorkload {
+  @Field()
+  memberName: string;
+
+  @Field(() => Int)
+  todo: number;
+
+  @Field(() => Int)
+  inProgress: number;
+
+  @Field(() => Int)
+  inReview: number;
+
+  @Field(() => Int)
+  done: number;
+}
+
+@ObjectType()
+export class ActivityTrend {
+  @Field()
+  date: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
+export class DailySnapshotData {
+  @Field()
+  date: string;
+
+  @Field(() => Int)
+  totalTasks: number;
+
+  @Field(() => Int)
+  completedTasks: number;
+
+  @Field(() => Int)
+  todoTasks: number;
+
+  @Field(() => Int)
+  inProgressTasks: number;
 }
