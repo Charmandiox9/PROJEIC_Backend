@@ -214,6 +214,14 @@ enum MemberStatus {
   REJECTED
 }
 
+type MemberWorkload {
+  done: Int!
+  inProgress: Int!
+  inReview: Int!
+  memberName: String!
+  todo: Int!
+}
+
 type Mutation {
   addCommentToTask(content: String!, taskId: String!): CommentEntity!
   addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
@@ -365,6 +373,7 @@ type ProjectMetrics {
   overdueTasksList: [Task!]!
   tasksByColumn: [ColumnMetric!]!
   totalTasks: Int!
+  workload: [MemberWorkload!]!
 }
 
 """Modo de gestión del proyecto (Clásico o Híbrido)"""

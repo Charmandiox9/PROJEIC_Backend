@@ -38,4 +38,25 @@ export class ProjectMetrics {
 
   @Field(() => [Task])
   overdueTasksList: Task[];
+
+  @Field(() => [MemberWorkload])
+  workload: MemberWorkload[];
+}
+
+@ObjectType()
+export class MemberWorkload {
+  @Field()
+  memberName: string;
+
+  @Field(() => Int)
+  todo: number;
+
+  @Field(() => Int)
+  inProgress: number;
+
+  @Field(() => Int)
+  inReview: number;
+
+  @Field(() => Int)
+  done: number;
 }

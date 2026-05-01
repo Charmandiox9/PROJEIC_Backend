@@ -396,6 +396,8 @@ export class TasksService {
         activityLast7Days,
         boards,
         tasksPerBoard,
+        projectMembers,
+        tasksByAssigneeAndStatus,
       ] = await Promise.all([
         this.prisma.task.count({ where: { projectId } }),
 
@@ -430,6 +432,17 @@ export class TasksService {
           where: { projectId, boardId: { not: null } },
           _count: { id: true },
         }),
+
+        this.prisma.projectMember.findMany({
+          where: { projectId },
+          include: { user: { select: { id: true, name: true } } },
+        }),
+
+        this.prisma.task.groupBy({
+          by: ['assigneeId', 'status'],
+          where: { projectId, assigneeId: { not: null } },
+          _count: { id: true },
+        }),
       ]);
 
       const tasksByColumn = boards.map((board) => {
@@ -442,6 +455,39 @@ export class TasksService {
         };
       });
 
+      const workloadMap = new Map();
+
+      projectMembers.forEach((member) => {
+        workloadMap.set(member.user.id, {
+          memberName: member.user.name,
+          todo: 0,
+          inProgress: 0,
+          inReview: 0,
+          done: 0,
+        });
+      });
+
+      tasksByAssigneeAndStatus.forEach((group) => {
+        const userWorkload = workloadMap.get(group.assigneeId);
+
+        if (userWorkload) {
+          if (
+            group.status === TaskStatus.TODO ||
+            group.status === TaskStatus.BACKLOG
+          ) {
+            userWorkload.todo += group._count.id;
+          } else if (group.status === TaskStatus.IN_PROGRESS) {
+            userWorkload.inProgress += group._count.id;
+          } else if (group.status === TaskStatus.IN_REVIEW) {
+            userWorkload.inReview += group._count.id;
+          } else if (group.status === TaskStatus.DONE) {
+            userWorkload.done += group._count.id;
+          }
+        }
+      });
+
+      const workload = Array.from(workloadMap.values());
+
       return {
         totalTasks,
         completedTasks,
@@ -450,6 +496,7 @@ export class TasksService {
         activityLast7Days,
         tasksByColumn,
         overdueTasksList,
+        workload,
       };
     } catch (error) {
       console.error('🔥 ERROR EN PRISMA (getProjectMetrics):', error);
