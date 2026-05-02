@@ -11,11 +11,15 @@ import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ProjectRole } from '@prisma/client';
 import { CommentEntity } from './entities/task.entity';
+import { ProjectMetricsService } from '../project-metrics/project-metrics.service';
 
 @Resolver(() => Task)
 @UseGuards(GqlAuthGuard, ProjectRoleGuard)
 export class TasksResolver {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly metricsService: ProjectMetricsService,
+  ) {}
 
   @Mutation(() => Task)
   @Roles(ProjectRole.LEADER)
@@ -57,8 +61,17 @@ export class TasksResolver {
   }
 
   @Query(() => ProjectMetrics, { name: 'projectMetrics' })
-  getMetrics(@Args('projectId') projectId: string) {
-    return this.tasksService.getProjectMetrics(projectId);
+  @UseGuards(GqlAuthGuard)
+  async getMetrics(@Args('projectId') projectId: string) {
+    const [taskMetrics, financialMetrics] = await Promise.all([
+      this.tasksService.getProjectMetrics(projectId),
+      this.metricsService.getProjectFinancialMetrics(projectId),
+    ]);
+
+    return {
+      ...taskMetrics,
+      ...financialMetrics,
+    };
   }
 
   @Query(() => [Task], { name: 'pendingTasksByUserId' })

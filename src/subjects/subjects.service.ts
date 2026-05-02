@@ -77,4 +77,19 @@ export class SubjectsService {
   async countSubjects() {
     return this.prisma.subject.count();
   }
+
+  async myTaughtSubjects(userId: string) {
+    return this.prisma.subject.findMany({
+      where: {
+        professors: {
+          some: { id: userId },
+        },
+      },
+      include: {
+        _count: {
+          select: { projects: true },
+        },
+      },
+    });
+  }
 }

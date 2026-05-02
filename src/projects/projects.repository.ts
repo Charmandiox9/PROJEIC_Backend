@@ -59,6 +59,17 @@ export class ProjectsRepository {
             uploadedBy: true,
           },
         },
+        wallet: {
+          include: {
+            transactions: {
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+            },
+            costs: {
+              where: { isActive: true },
+            },
+          },
+        },
       },
     });
   }

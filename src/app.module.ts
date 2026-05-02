@@ -33,6 +33,7 @@ import { EmailModule } from './email/email.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DocumentModule } from './document/document.module';
+import { FinanceModule } from './finance/finance.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -77,6 +78,7 @@ const devProviders =
     PrometheusModule.register(),
     ScheduleModule.forRoot(),
     DocumentModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [
