@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql';
+import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import { Task } from '../../tasks/entities/task.entity';
 
 @ObjectType()
@@ -80,6 +80,15 @@ export class ProjectMetrics {
 
   @Field(() => [DailyTaskCompletion])
   dailyCompletions: DailyTaskCompletion[];
+
+  @Field(() => Float) currentBalance: number;
+  @Field(() => Float) totalSpent: number;
+
+  @Field(() => [FinancialTrendPoint])
+  financialTrend: FinancialTrendPoint[];
+
+  @Field(() => [ExpenseDistribution])
+  expensesByType: ExpenseDistribution[];
 }
 
 @ObjectType()
@@ -125,4 +134,19 @@ export class DailySnapshotData {
 
   @Field(() => Int)
   inProgressTasks: number;
+}
+
+@ObjectType()
+class FinancialTrendPoint {
+  @Field() date: string;
+  @Field(() => Float) balance: number;
+  @Field(() => Float) spent: number;
+}
+
+@ObjectType()
+class ExpenseDistribution {
+  @Field() type: string;
+  @Field() name: string;
+  @Field(() => Float) amount: number;
+  @Field() color: string;
 }

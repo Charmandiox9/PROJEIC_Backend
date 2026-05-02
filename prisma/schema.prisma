@@ -111,6 +111,20 @@ enum InvitationStatus {
   CANCELLED
 }
 
+enum TransactionType {
+  FUNDING    // Fondos inyectados por el profesor (Ingreso)
+  PAYROLL    // Sueldos pagados a los miembros (Gasto)
+  EXPENSE    // Pago de facturas, APIs o servidores (Gasto)
+  PENALTY    // Multas por atrasos o bugs (Gasto)
+  REFUND     // Devoluciones al proyecto (Ingreso)
+}
+
+enum CostCycle {
+  ONE_TIME   // Cobro único
+  WEEKLY     // Cobro semanal
+  MONTHLY    // Cobro mensual
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -134,6 +148,8 @@ model User {
   taughtSubjects Subject[]        @relation("SubjectProfessors")
   ownedResults   ExpectedResult[] @relation("ResultOwner")
   uploadedDocs ProjectDocument[]
+  executedTransactions Transaction[] @relation("ExecutedTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedTransactions")
 
   @@map("users")
 }
@@ -173,6 +189,7 @@ model Project {
   activityLogs ActivityLog[]
   subject      Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   invitations ProjectInvitation[]
+  wallet ProjectWallet?
 
   @@map("projects")
 }
@@ -390,6 +407,7 @@ model Subject {
 
   professors User[]    @relation("SubjectProfessors")
   projects   Project[] // Relación uno a muchos: Un ramo tiene muchos proyectos
+  catalogItems CatalogItem[]
 
   @@map("subjects")
 }
@@ -508,4 +526,82 @@ model ProjectDocument {
   uploadedBy   User     @relation(fields: [uploadedById], references: [id])
   
   createdAt    DateTime @default(now())
+}
+
+model ProjectWallet {
+  id        String   @id @default(cuid())
+  balance   Float    @default(0) // Puede ser negativo si se endeudan
+  currency  String   @default("PROJEIC_COIN") 
+  
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  transactions Transaction[]
+  costs        ProjectCost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_wallets")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  amount      Float           // Positivo para ingresos, negativo para gastos
+  type        TransactionType
+  description String          @db.Text // Ej: "Pago de quincena a Martín" o "Factura AWS"
+  
+  walletId    String
+  wallet      ProjectWallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  // Quién autorizó/ejecutó la transacción (El líder o el profesor)
+  executorId  String
+  executor    User            @relation("ExecutedTransactions", fields: [executorId], references: [id])
+
+  // Quién recibe el dinero (Solo aplica para sueldos/PAYROLL, si es una API queda en null)
+  recipientId String?
+  recipient   User?           @relation("ReceivedTransactions", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime        @default(now())
+
+  @@map("transactions")
+}
+
+model CatalogItem {
+  id          String    @id @default(cuid())
+  name        String    // Ej: "Instancia EC2 Básica", "Suscripción Vercel Pro"
+  description String?
+  basePrice   Float     // Costo de referencia
+  cycle       CostCycle @default(MONTHLY)
+
+  // Opcional: El profesor puede limitar ciertos costos a un ramo en específico
+  subjectId   String?
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  projectCosts ProjectCost[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("catalog_items")
+}
+
+model ProjectCost {
+  id            String       @id @default(cuid())
+  name          String       // El líder puede ponerle un nombre propio (ej: "Base de Datos Producción")
+  amount        Float        // El líder puede justificar un costo distinto al del catálogo
+  cycle         CostCycle    @default(MONTHLY)
+  isActive      Boolean      @default(true) // Si se apaga, deja de cobrar en el cron job
+  
+  walletId      String
+  wallet        ProjectWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  // Si lo eligieron de la lista del profesor, queda enlazado aquí
+  catalogItemId String?
+  catalogItem   CatalogItem?  @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("project_costs")
 }

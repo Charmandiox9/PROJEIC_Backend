@@ -26,6 +26,12 @@ input AddProjectMemberInput {
   role: ProjectRole!
 }
 
+input ApplyPenaltyInput {
+  amount: Float!
+  projectId: String!
+  reason: String!
+}
+
 type Artifact {
   created_at: String!
   expired: Boolean!
@@ -48,6 +54,19 @@ type BurndownDataPoint {
   dayLabel: String!
   ideal: Float
   real: Float
+}
+
+input CancelSubscriptionInput {
+  costId: String!
+  projectId: String!
+}
+
+type CatalogItemEntity {
+  basePrice: Float!
+  cycle: CostCycle!
+  description: String
+  id: ID!
+  name: String!
 }
 
 type ColumnMetric {
@@ -92,12 +111,26 @@ type CommitStats {
   totalDeletions: Int!
 }
 
+enum CostCycle {
+  MONTHLY
+  ONE_TIME
+  WEEKLY
+}
+
 input CreateBoardInput {
   color: String
   name: String!
   position: Int
   projectId: String!
   wipLimit: Int
+}
+
+input CreateCatalogItemInput {
+  basePrice: Float!
+  cycle: CostCycle!
+  description: String
+  name: String!
+  subjectId: String!
 }
 
 input CreateExpectedResultInput {
@@ -225,6 +258,25 @@ type ExpectedResult {
   updatedAt: DateTime!
 }
 
+type ExpenseDistribution {
+  amount: Float!
+  color: String!
+  name: String!
+  type: String!
+}
+
+type FinancialTrendPoint {
+  balance: Float!
+  date: String!
+  spent: Float!
+}
+
+input FundProjectInput {
+  amount: Float!
+  description: String
+  projectId: String!
+}
+
 type GithubActionResponse {
   message: String!
   success: Boolean!
@@ -253,25 +305,31 @@ type MemberWorkload {
 type Mutation {
   addCommentToTask(content: String!, taskId: String!): CommentEntity!
   addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
+  applyPenalty(input: ApplyPenaltyInput!): ProjectWallet!
 
   """Soft-delete a project (sets isArchived = true)"""
   archiveProject(id: ID!): ProjectEntity!
+  cancelSubscription(input: CancelSubscriptionInput!): Boolean!
   completeSprint(id: String!): Sprint!
   createBoard(createBoardInput: CreateBoardInput!): Board!
+  createCatalogItem(input: CreateCatalogItemInput!): CatalogItemEntity!
   createDefaultBoards(projectId: String!): [Board!]!
   createExpectedResult(input: CreateExpectedResultInput!): ExpectedResult!
   createProject(input: CreateProjectInput!): ProjectEntity!
   createSprint(input: CreateSprintInput!): Sprint!
   createSubject(input: CreateSubjectInput!): SubjectEntity!
   createTask(createTaskInput: CreateTaskInput!): Task!
+  deleteCatalogItem(id: String!): Boolean!
 
   """Permanently delete a project and all its data (cascades)"""
   deleteProject(id: ID!): ProjectEntity!
   dispatchWorkflow(owner: String!, ref: String!, repo: String!, token: String!, workflowId: String!): GithubActionResponse!
+  fundProject(input: FundProjectInput!): ProjectWallet!
   getDocumentUploadUrl(fileName: String!, fileType: String!, projectId: String!): DocumentPresignedUrlResponse!
   getUploadPresignedUrl(contentType: String!, fileName: String!): PresignedUrlResponse!
   markAllNotificationsAsRead: Boolean!
   markNotificationAsRead(id: ID!): NotificationEntity!
+  payMember(input: PayMemberInput!): ProjectWallet!
   redeemProjectInvitation(token: String!): ProjectMember!
   removeBoard(id: String!): Board!
   removeProjectMember(memberId: ID!): Boolean!
@@ -280,6 +338,7 @@ type Mutation {
   respondToInvitation(accept: Boolean!, projectId: ID!): ProjectMemberEntity
   saveDocumentRecord(input: SaveDocumentInput!): ProjectDocumentResponse!
   startSprint(id: String!, projectId: String!): Sprint!
+  subscribeCatalog(input: SubscribeCatalogInput!): ProjectWallet!
   updateBoard(updateBoardInput: UpdateBoardInput!): Board!
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
@@ -322,9 +381,24 @@ type PaginatedProjects {
   total: Int!
 }
 
+input PayMemberInput {
+  amount: Float!
+  description: String
+  projectId: String!
+  recipientId: String!
+}
+
 type PresignedUrlResponse {
   fileKey: String!
   uploadUrl: String!
+}
+
+type ProjectCost {
+  amount: Float!
+  cycle: CostCycle!
+  id: String!
+  isActive: Boolean!
+  name: String!
 }
 
 type ProjectDocumentResponse {
@@ -381,6 +455,7 @@ type ProjectEntity {
 
   """ISO timestamp of last update"""
   updatedAt: DateTime!
+  wallet: ProjectWallet
 }
 
 type ProjectMember {
@@ -412,12 +487,16 @@ type ProjectMetrics {
   activityTrend: [ActivityTrend!]!
   burndownData: [DailySnapshotData!]!
   completedTasks: Int!
+  currentBalance: Float!
   dailyCompletions: [DailyTaskCompletion!]!
+  expensesByType: [ExpenseDistribution!]!
+  financialTrend: [FinancialTrendPoint!]!
   inReviewTasks: Int!
   overdueTasksCount: Int!
   overdueTasksList: [Task!]!
   projectRisk: ProjectRisk!
   tasksByColumn: [ColumnMetric!]!
+  totalSpent: Float!
   totalTasks: Int!
   workload: [MemberWorkload!]!
 }
@@ -451,6 +530,15 @@ enum ProjectStatus {
   COMPLETED
   ON_HOLD
   STARTING
+}
+
+type ProjectWallet {
+  balance: Float!
+  costs: [ProjectCost]
+  currency: String!
+  id: String!
+  projectId: String!
+  transactions: [Transaction]
 }
 
 """Filters and pagination for listing projects"""
@@ -507,8 +595,11 @@ type Query {
   getDeployments(owner: String!, repo: String!, token: String!): [Deployment!]!
   getDocumentDownloadUrl(r2Key: String!): String!
   getGithubCommits(branch: String! = "main", name: String!, owner: String!, token: String!): GithubCommitHistory!
+  getMyProjectEarnings(projectId: String!): Float!
+  getMyTaughtSubjects: [SubjectEntity!]!
   getPullRequests(owner: String!, repo: String!, token: String!): [PullRequest!]!
   getSecurityAlerts(owner: String!, repo: String!, token: String!): [SecurityAlert!]!
+  getSubjectCatalog(subjectId: String!): [CatalogItemEntity!]!
   getWorkflowRuns(owner: String!, repo: String!, token: String!): [WorkflowRun!]!
   health: String!
   me: User!
@@ -593,6 +684,11 @@ type SubjectEntity {
   professors: [PublicUser!]
 }
 
+input SubscribeCatalogInput {
+  catalogItemId: String!
+  projectId: String!
+}
+
 type Task {
   assigneeId: String
   boardId: String
@@ -613,6 +709,25 @@ type Task {
   tags: [String!]
   title: String!
   updatedAt: DateTime!
+}
+
+type Transaction {
+  amount: Float!
+  createdAt: DateTime!
+  description: String!
+  executorId: String!
+  id: String!
+  recipientId: String
+  type: TransactionType!
+  walletId: String!
+}
+
+enum TransactionType {
+  EXPENSE
+  FUNDING
+  PAYROLL
+  PENALTY
+  REFUND
 }
 
 input UpdateBoardInput {
