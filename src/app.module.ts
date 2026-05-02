@@ -32,6 +32,7 @@ import { GithubModule } from './github/github.module';
 import { EmailModule } from './email/email.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { ScheduleModule } from '@nestjs/schedule';
+import { DocumentModule } from './document/document.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -75,6 +76,7 @@ const devProviders =
     EmailModule,
     PrometheusModule.register(),
     ScheduleModule.forRoot(),
+    DocumentModule,
   ],
   controllers: [AppController],
   providers: [

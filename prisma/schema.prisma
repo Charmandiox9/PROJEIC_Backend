@@ -133,6 +133,7 @@ model User {
   notifications  Notification[]
   taughtSubjects Subject[]        @relation("SubjectProfessors")
   ownedResults   ExpectedResult[] @relation("ResultOwner")
+  uploadedDocs ProjectDocument[]
 
   @@map("users")
 }
@@ -158,6 +159,8 @@ model Project {
   repositories    Repository[]
 
   dailySnapshots ProjectDailySnapshot[]
+
+  documents ProjectDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -489,4 +492,20 @@ model ProjectDailySnapshot {
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, date])
+}
+
+model ProjectDocument {
+  id           String   @id @default(cuid())
+  name         String   
+  r2Key        String   
+  fileType     String   
+  size         Int      
+  
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  
+  createdAt    DateTime @default(now())
 }
