@@ -54,6 +54,11 @@ export class ProjectsRepository {
           },
         },
         repositories: true,
+        documents: {
+          include: {
+            uploadedBy: true,
+          },
+        },
       },
     });
   }

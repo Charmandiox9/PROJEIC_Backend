@@ -9,6 +9,7 @@ import {
 import '../../common/enums/project.enums';
 import { IsEnum, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { SubjectEntity } from '../../subjects/entities/subject.entity';
+import { ProjectDocumentResponse } from 'src/document/entities/document.entity';
 
 registerEnumType(MemberStatus, { name: 'MemberStatus' });
 
@@ -120,6 +121,9 @@ export class ProjectEntity {
 
   @Field(() => [RepositoryEntity], { nullable: true })
   repositories?: RepositoryEntity[];
+
+  @Field(() => [ProjectDocumentResponse], { nullable: 'itemsAndList' })
+  documents?: ProjectDocumentResponse[];
 }
 
 @ObjectType()

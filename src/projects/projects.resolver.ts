@@ -1,5 +1,15 @@
-import { Resolver, Query, Mutation, Args, ID, Info } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  Info,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import type { GraphQLResolveInfo, FieldNode, SelectionNode } from 'graphql';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Project } from '@prisma/client';
 import { ProjectsService } from './projects.service';
 import { ProjectEntity } from './entities/project.entity';
@@ -14,6 +24,7 @@ import { InternalUserGuard } from 'src/auth/guards/internal-user.guard';
 import { ProjectRoleGuard } from 'src/auth/guards/project-role.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ProjectRole } from '@prisma/client';
+import { ProjectDocumentResponse } from 'src/document/entities/document.entity';
 
 function isFieldNode(node: SelectionNode): node is FieldNode {
   return node.kind === 'Field';
@@ -35,7 +46,10 @@ function clientRequestedMembers(info: GraphQLResolveInfo): boolean {
 
 @Resolver(() => ProjectEntity)
 export class ProjectsResolver {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private prisma: PrismaService,
+  ) {}
 
   @Query(() => PaginatedProjects)
   findAll(
@@ -126,5 +140,23 @@ export class ProjectsResolver {
   @Query(() => Number, { name: 'projectsActiveCount' })
   getProjectsActiveCount(): Promise<number> {
     return this.projectsService.getProjectsActiveCount();
+  }
+
+  @ResolveField(() => [ProjectDocumentResponse], {
+    name: 'documents',
+    nullable: 'itemsAndList',
+  })
+  async getProjectDocuments(@Parent() project: ProjectEntity) {
+    return this.prisma.projectDocument.findMany({
+      where: {
+        projectId: project.id,
+      },
+      include: {
+        uploadedBy: true, // Para traer los datos de quién lo subió
+      },
+      orderBy: {
+        createdAt: 'desc', // Los más nuevos primero
+      },
+    });
   }
 }
