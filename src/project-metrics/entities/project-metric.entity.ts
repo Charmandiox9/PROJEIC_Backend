@@ -81,14 +81,14 @@ export class ProjectMetrics {
   @Field(() => [DailyTaskCompletion])
   dailyCompletions: DailyTaskCompletion[];
 
-  @Field(() => Float) currentBalance: number;
-  @Field(() => Float) totalSpent: number;
+  @Field(() => Float, { nullable: true }) currentBalance?: number;
+  @Field(() => Float, { nullable: true }) totalSpent?: number;
 
-  @Field(() => [FinancialTrendPoint])
-  financialTrend: FinancialTrendPoint[];
+  @Field(() => [FinancialTrendPoint], { nullable: true })
+  financialTrend?: FinancialTrendPoint[];
 
-  @Field(() => [ExpenseDistribution])
-  expensesByType: ExpenseDistribution[];
+  @Field(() => [ExpenseDistribution], { nullable: true })
+  expensesByType?: ExpenseDistribution[];
 }
 
 @ObjectType()

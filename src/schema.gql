@@ -487,16 +487,16 @@ type ProjectMetrics {
   activityTrend: [ActivityTrend!]!
   burndownData: [DailySnapshotData!]!
   completedTasks: Int!
-  currentBalance: Float!
+  currentBalance: Float
   dailyCompletions: [DailyTaskCompletion!]!
-  expensesByType: [ExpenseDistribution!]!
-  financialTrend: [FinancialTrendPoint!]!
+  expensesByType: [ExpenseDistribution!]
+  financialTrend: [FinancialTrendPoint!]
   inReviewTasks: Int!
   overdueTasksCount: Int!
   overdueTasksList: [Task!]!
   projectRisk: ProjectRisk!
   tasksByColumn: [ColumnMetric!]!
-  totalSpent: Float!
+  totalSpent: Float
   totalTasks: Int!
   workload: [MemberWorkload!]!
 }
