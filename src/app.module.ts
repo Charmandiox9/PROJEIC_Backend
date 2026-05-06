@@ -34,6 +34,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DocumentModule } from './document/document.module';
 import { FinanceModule } from './finance/finance.module';
+import { AdminModule } from './admin/admin.module';
 
 const devProviders =
   process.env.NODE_ENV !== 'production'
@@ -79,6 +80,7 @@ const devProviders =
     ScheduleModule.forRoot(),
     DocumentModule,
     FinanceModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

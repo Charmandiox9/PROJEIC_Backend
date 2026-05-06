@@ -26,6 +26,28 @@ input AddProjectMemberInput {
   role: ProjectRole!
 }
 
+type AdminUser {
+  avatarUrl: String
+  blockedUntil: String
+  createdAt: String!
+  email: String!
+  id: ID!
+  isActive: Boolean
+  isAdmin: Boolean!
+  lastLogin: String
+  name: String!
+  updatedAt: String
+}
+
+type AnnouncementEntity {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  message: String!
+  title: String!
+  type: String!
+}
+
 input ApplyPenaltyInput {
   amount: Float!
   projectId: String!
@@ -288,6 +310,14 @@ type GithubCommitHistory {
   totalCommits: Int!
 }
 
+type GlobalStats {
+  activeSubjects: Int!
+  projectsAdoption: [MonthlyStat!]!
+  totalProfessors: Int!
+  totalProjects: Int!
+  totalUsers: Int!
+}
+
 enum MemberStatus {
   ACTIVE
   PENDING
@@ -302,9 +332,20 @@ type MemberWorkload {
   todo: Int!
 }
 
+type MonthlyStat {
+  count: Int!
+  month: String!
+}
+
 type Mutation {
   addCommentToTask(content: String!, taskId: String!): CommentEntity!
   addProjectMember(input: AddProjectMemberInput!): ProjectMemberEntity!
+  adminCreateAnnouncement(message: String!, title: String!, type: String! = "INFO"): AnnouncementEntity!
+  adminDisableUser(userId: String!): AdminUser!
+  adminForceDeleteProject(projectId: String!): ProjectEntity!
+  adminToggleAnnouncement(id: String!, isActive: Boolean!): AnnouncementEntity!
+  adminUpdateSettings(activePeriod: String, allowNewProjects: Boolean, maintenanceMode: Boolean): SystemSettingEntity!
+  adminUpdateUserRole(isAdmin: Boolean!, userId: String!): AdminUser!
   applyPenalty(input: ApplyPenaltyInput!): ProjectWallet!
 
   """Soft-delete a project (sets isArchived = true)"""
@@ -343,7 +384,7 @@ type Mutation {
   updateProject(input: UpdateProjectInput!): ProjectEntity!
   updateProjectMemberRole(input: UpdateProjectMemberInput!): ProjectMemberEntity!
   updateResultStatus(input: UpdateResultStatusInput!): ExpectedResult!
-  updateSubject(input: UpdateSubjectInput!): SubjectEntity!
+  updateSubject(updateSubjectInput: UpdateSubjectInput!): SubjectEntity!
   updateTask(updateTaskInput: UpdateTaskInput!): Task!
 }
 
@@ -379,6 +420,11 @@ type PaginatedProjects {
 
   """Total count (ignoring pagination)"""
   total: Int!
+}
+
+type PaginatedUsers {
+  items: [AdminUser!]!
+  totalCount: Float!
 }
 
 input PayMemberInput {
@@ -444,6 +490,9 @@ type ProjectEntity {
 
   """Display name of the project"""
   name: String!
+
+  """Líder del proyecto (Mapeado manualmente para la vista de Admin)"""
+  owner: PublicUser
   repositories: [RepositoryEntity!]
 
   """Current lifecycle status"""
@@ -566,6 +615,7 @@ input ProjectsFilterInput {
 
 type PublicUser {
   avatarUrl: String
+  email: String
   id: ID!
   name: String!
 }
@@ -582,6 +632,11 @@ type PullRequest {
 
 type Query {
   activityLogsByProject(projectId: String!): [ActivityLog!]!
+  adminGetAnnouncements: [AnnouncementEntity!]!
+  adminGetProjectDetails(id: String!): ProjectEntity!
+  adminGetProjects(active: Boolean, search: String, skip: Int! = 0, take: Int! = 10): PaginatedProjects!
+  adminGetSettings: SystemSettingEntity!
+  adminGetUsers(search: String, skip: Int! = 0, take: Int! = 10): PaginatedUsers!
   boardsByProject(projectId: String!): [Board!]!
   countExternalProfessorsRegistered: Int!
   countProfessorsRegistered: Int!
@@ -595,6 +650,7 @@ type Query {
   getDeployments(owner: String!, repo: String!, token: String!): [Deployment!]!
   getDocumentDownloadUrl(r2Key: String!): String!
   getGithubCommits(branch: String! = "main", name: String!, owner: String!, token: String!): GithubCommitHistory!
+  getGlobalStats: GlobalStats!
   getMyProjectEarnings(projectId: String!): Float!
   getMyTaughtSubjects: [SubjectEntity!]!
   getPullRequests(owner: String!, repo: String!, token: String!): [PullRequest!]!
@@ -687,6 +743,14 @@ type SubjectEntity {
 input SubscribeCatalogInput {
   catalogItemId: String!
   projectId: String!
+}
+
+type SystemSettingEntity {
+  activePeriod: String!
+  allowNewProjects: Boolean!
+  id: ID!
+  maintenanceMode: Boolean!
+  updatedAt: DateTime!
 }
 
 type Task {

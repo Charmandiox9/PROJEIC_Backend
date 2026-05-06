@@ -24,6 +24,9 @@ export class PublicUser {
   @Field()
   name: string;
 
+  @Field({ nullable: true })
+  email?: string;
+
   @Field(() => String, { nullable: true })
   avatarUrl: string | null;
 }
@@ -128,6 +131,13 @@ export class ProjectEntity {
 
   @Field(() => ProjectWallet, { nullable: true })
   wallet?: ProjectWallet;
+
+  @Field(() => PublicUser, {
+    nullable: true,
+    description:
+      'Líder del proyecto (Mapeado manualmente para la vista de Admin)',
+  })
+  owner?: PublicUser;
 }
 
 @ObjectType()

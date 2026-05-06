@@ -36,7 +36,9 @@ export class SubjectsResolver {
   }
 
   @Mutation(() => SubjectEntity)
-  updateSubject(@Args('input') updateSubjectInput: UpdateSubjectInput) {
+  updateSubject(
+    @Args('updateSubjectInput') updateSubjectInput: UpdateSubjectInput,
+  ) {
     return this.subjectsService.update(
       updateSubjectInput.id,
       updateSubjectInput,

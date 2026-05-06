@@ -150,6 +150,7 @@ model User {
   uploadedDocs ProjectDocument[]
   executedTransactions Transaction[] @relation("ExecutedTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
+  systemAuditLogs SystemAuditLog[] @relation("AdminAuditLogs")
 
   @@map("users")
 }
@@ -604,4 +605,37 @@ model ProjectCost {
   updatedAt     DateTime      @updatedAt
 
   @@map("project_costs")
+}
+
+model SystemSetting {
+  id               String   @id @default("global")
+  activePeriod     String   @default("2026-10")
+  allowNewProjects Boolean  @default(true)
+  maintenanceMode  Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, ERROR, SUCCESS
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("announcements")
+}
+
+model SystemAuditLog {
+  id        String   @id @default(cuid())
+  action    String   // Ej: "FORCE_DELETE_PROJECT", "UPDATE_SETTINGS"
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation("AdminAuditLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("system_audit_logs")
 }
