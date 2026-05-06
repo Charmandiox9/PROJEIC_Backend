@@ -84,15 +84,14 @@ export class ProjectsService {
               })),
             }
           : undefined,
-      wallet:
-        input.isInstitutional === true
-          ? undefined
-          : {
-              create: {
-                currency: 'PROJEIC_COIN',
-                balance: 0,
-              },
+      wallet: input.isInstitutional
+        ? {
+            create: {
+              currency: 'PROJEIC_COIN',
+              balance: 0,
             },
+          }
+        : undefined,
     };
 
     const newProject = await this.repository.create(data);
